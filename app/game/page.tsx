@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 
-// ==================== DATOS ====================
+// ==================== DATOS REALES ====================
 
 interface Community {
   id: string;
@@ -10,10 +10,12 @@ interface Community {
   sport: SportType;
   members: number;
   whatsapp: string;
+  city?: string;
   discovered?: boolean;
+  isMain?: boolean; // Es la comunidad principal (plaza central)
 }
 
-interface Province {
+interface Region {
   id: string;
   name: string;
   theme: string;
@@ -22,6 +24,8 @@ interface Province {
   worldX: number;
   worldY: number;
   communities: Community[];
+  mapX: number;
+  mapY: number;
 }
 
 type SportType = 'padel' | 'football' | 'tennis' | 'rowing' | 'trekking' | 'ski' | 'cycling' | 'polo' | 'kayak' | 'running';
@@ -39,27 +43,77 @@ const SPORT_EMOJI: Record<SportType, string> = {
   running: '🏃',
 };
 
-// World configuration - larger to fit provinces with proper spacing
+// World configuration
 const TILE = 32;
-const WORLD_W = 70;
-const WORLD_H = 70;
+const WORLD_W = 100;
+const WORLD_H = 100;
 const WORLD_PX = WORLD_W * TILE;
 const WORLD_PY = WORLD_H * TILE;
 
-// Province grid: each province is 14x12 tiles, with 4-tile gaps between them
-// Arranged in a rough Argentina shape around center hub
-const PROVINCES: Province[] = [
+// Regiones - posicionadas con mas espacio
+const REGIONS: Region[] = [
   {
     id: 'caba',
     name: 'CABA',
     theme: 'urban',
     palette: { ground: '#4a4a5a', groundAlt: '#5a5a6a', path: '#6a6a7a', accent: '#ff6b35' },
-    description: 'Asfalto, jacarandas, palomas, adoquines porteños',
-    worldX: 38, worldY: 38, // Southeast of center
+    description: 'Asfalto, jacarandas, palomas, adoquines portenos',
+    worldX: 55, worldY: 55,
+    mapX: 72, mapY: 52,
     communities: [
-      { id: 'caba-padel', name: 'Padel Palermo', sport: 'padel', members: 340, whatsapp: 'https://chat.whatsapp.com/example1' },
-      { id: 'caba-futbol', name: 'Futbol Caballito', sport: 'football', members: 280, whatsapp: 'https://chat.whatsapp.com/example2' },
-      { id: 'caba-tenis', name: 'Tenis Belgrano', sport: 'tennis', members: 95, whatsapp: 'https://chat.whatsapp.com/example3' },
+      { id: 'caba-main', name: 'Comunidad CABA', sport: 'padel', members: 1704, whatsapp: 'https://chat.whatsapp.com/KmzpxJFG31g8H0EC2rwUDp', city: 'Capital Federal', isMain: true },
+      { id: 'distrito-padel', name: 'Distrito Padel', sport: 'padel', members: 120, whatsapp: 'https://chat.whatsapp.com/CG2DLwQ1MRmA3I6IIAcK4N', city: 'Palermo' },
+      { id: 'padel-noble', name: 'Padel Noble', sport: 'padel', members: 85, whatsapp: 'https://chat.whatsapp.com/C5marc2or5zL1D84OuQbg5', city: 'Palermo' },
+      { id: 'village-club', name: 'Village Club', sport: 'padel', members: 95, whatsapp: 'https://chat.whatsapp.com/Fox8s4ToXr1LS3jl4X6gfO', city: 'Flores' },
+      { id: 'centenario', name: 'Centenario Padel Club', sport: 'padel', members: 110, whatsapp: 'https://chat.whatsapp.com/Dsq5ncFAdrV6JWrCxXL6hB', city: 'Caballito' },
+    ]
+  },
+  {
+    id: 'gba-norte',
+    name: 'GBA Norte',
+    theme: 'suburban',
+    palette: { ground: '#5a6a4a', groundAlt: '#4a5a3a', path: '#8a9a6a', accent: '#4caf50' },
+    description: 'Quintas, countries, verde del conurbano norte',
+    worldX: 75, worldY: 30,
+    mapX: 75, mapY: 48,
+    communities: [
+      { id: 'gba-norte-main', name: 'Comunidad GBA Norte', sport: 'padel', members: 172, whatsapp: 'https://chat.whatsapp.com/BXQTG9HXbng4MY101ILOZW', city: 'Zona Norte', isMain: true },
+      { id: 'babolat-remeros', name: 'Babolat Remeros', sport: 'padel', members: 140, whatsapp: 'https://chat.whatsapp.com/Jr4UHt6wgWG3wtkZLgE1Rj', city: 'Tigre' },
+      { id: 'olivos-padel', name: 'Olivos Padel Club', sport: 'padel', members: 95, whatsapp: 'https://chat.whatsapp.com/EMD9VE3TojJ3y7S0YAUXCP', city: 'Olivos' },
+      { id: 'wpc-nordelta', name: 'WPC Nordelta', sport: 'padel', members: 130, whatsapp: 'https://chat.whatsapp.com/IcExqgDCt6L3KPz1FhnqX6', city: 'Nordelta' },
+      { id: 'head-hindu', name: 'Head Hindu', sport: 'padel', members: 105, whatsapp: 'https://chat.whatsapp.com/IlcHtKsFYYMIUoK34RWGmZ', city: 'Don Torcuato' },
+    ]
+  },
+  {
+    id: 'gba-sur',
+    name: 'GBA Sur',
+    theme: 'industrial',
+    palette: { ground: '#5a5a5a', groundAlt: '#4a4a4a', path: '#7a7a7a', accent: '#ff5722' },
+    description: 'Zona industrial, estadios, comunidad pujante',
+    worldX: 75, worldY: 55,
+    mapX: 73, mapY: 58,
+    communities: [
+      { id: 'gba-sur-main', name: 'Comunidad GBA Sur', sport: 'padel', members: 183, whatsapp: 'https://chat.whatsapp.com/H3VoDuisgC7HO23B0Cdlra', city: 'Zona Sur', isMain: true },
+      { id: 'gm-sports', name: 'GM Sports', sport: 'padel', members: 75, whatsapp: 'https://chat.whatsapp.com/CX0IA6ID1dxAM5c2BUo25s', city: 'Berazategui' },
+      { id: 'fun-padel', name: 'Fun Padel', sport: 'padel', members: 90, whatsapp: 'https://chat.whatsapp.com/B4m3gFQmHVABf5yABNOhRA', city: 'Canning' },
+      { id: 'meca-avellaneda', name: 'La MECA Avellaneda', sport: 'padel', members: 120, whatsapp: 'https://chat.whatsapp.com/FHCJIMb9CR24x4i7WI5D1M', city: 'Avellaneda' },
+      { id: 'meca-quilmes', name: 'La MECA Quilmes', sport: 'padel', members: 110, whatsapp: 'https://chat.whatsapp.com/IiilU7rcEJNB5H73vUYnJC', city: 'Quilmes' },
+    ]
+  },
+  {
+    id: 'gba-oeste',
+    name: 'GBA Oeste',
+    theme: 'suburban',
+    palette: { ground: '#6a7a5a', groundAlt: '#5a6a4a', path: '#9aaa7a', accent: '#8bc34a' },
+    description: 'Barrios tradicionales, clubes de barrio',
+    worldX: 20, worldY: 55,
+    mapX: 68, mapY: 52,
+    communities: [
+      { id: 'gba-oeste-main', name: 'Comunidad GBA Oeste', sport: 'padel', members: 129, whatsapp: 'https://chat.whatsapp.com/H4EqXrAuya47flouWTno4o', city: 'Zona Oeste', isMain: true },
+      { id: 'flow-red', name: 'Flow en Red', sport: 'padel', members: 85, whatsapp: 'https://chat.whatsapp.com/CPYf4K0aiWF0TNVzRjDmIe', city: 'Malvinas Argentinas' },
+      { id: 'club-melian', name: 'Club Melian', sport: 'padel', members: 70, whatsapp: 'https://chat.whatsapp.com/DyonVGnUGR5FWQmzqbVu2M', city: 'Martin Coronado' },
+      { id: 'parador-57', name: 'Parador 57', sport: 'padel', members: 60, whatsapp: 'https://chat.whatsapp.com/Cn36RmkWHGs4TsZQ6Ki2vi', city: 'Moreno' },
+      { id: 'container-fc', name: 'Container FC', sport: 'football', members: 95, whatsapp: 'https://chat.whatsapp.com/C9ZMOrjAPcT2usDe6NCNJ5', city: 'Ramos Mejia' },
     ]
   },
   {
@@ -67,12 +121,14 @@ const PROVINCES: Province[] = [
     name: 'Cordoba',
     theme: 'sierras',
     palette: { ground: '#5a7a3a', groundAlt: '#4a6a2a', path: '#c8a96e', accent: '#8bc34a' },
-    description: 'Quebrachos, condores, sierras rocosas, arroyos',
-    worldX: 20, worldY: 20, // Northwest of center
+    description: 'Sierras, fernet, cuarteto, corazon del pais',
+    worldX: 20, worldY: 30,
+    mapX: 58, mapY: 42,
     communities: [
-      { id: 'cba-padel', name: 'Padel Sierras', sport: 'padel', members: 310, whatsapp: 'https://chat.whatsapp.com/example4' },
-      { id: 'cba-running', name: 'Running Cordoba', sport: 'running', members: 450, whatsapp: 'https://chat.whatsapp.com/example5' },
-      { id: 'cba-futbol', name: 'Futbol Nueva Cordoba', sport: 'football', members: 190, whatsapp: 'https://chat.whatsapp.com/example6' },
+      { id: 'cordoba-main', name: 'Comunidad Cordoba', sport: 'padel', members: 727, whatsapp: 'https://chat.whatsapp.com/EvEGd0DuKlb1aPREiktK0Z', city: 'Ciudad de Cordoba', isMain: true },
+      { id: 'padel-poligono', name: 'Padel Poligono', sport: 'padel', members: 85, whatsapp: 'https://chat.whatsapp.com/KO3B0Z02DmWDMBEAEzOJbM', city: 'Ciudad de Cordoba' },
+      { id: 'sacala-x4', name: 'Sacala x4', sport: 'padel', members: 70, whatsapp: 'https://chat.whatsapp.com/JHDHaowLeAp1EaBKojytpg', city: 'Ciudad de Cordoba' },
+      { id: 'p60-espacio', name: 'P60 Espacio', sport: 'football', members: 55, whatsapp: 'https://chat.whatsapp.com/LLd0ubiCi8N672jKSXgP2K', city: 'Las Perdices' },
     ]
   },
   {
@@ -80,143 +136,287 @@ const PROVINCES: Province[] = [
     name: 'Mendoza',
     theme: 'andes',
     palette: { ground: '#8a6a4a', groundAlt: '#9a7a5a', path: '#d4a96e', accent: '#9c27b0' },
-    description: 'Vinedos, Andes nevados, olivos, piedra y arena',
-    worldX: 4, worldY: 28, // West
+    description: 'Vinedos, Andes nevados, sol y buen vino',
+    worldX: 2, worldY: 45,
+    mapX: 42, mapY: 48,
     communities: [
-      { id: 'mdz-ciclismo', name: 'Ciclismo Andino', sport: 'cycling', members: 220, whatsapp: 'https://chat.whatsapp.com/example7' },
-      { id: 'mdz-padel', name: 'Padel Mendoza', sport: 'padel', members: 180, whatsapp: 'https://chat.whatsapp.com/example8' },
-      { id: 'mdz-ski', name: 'Esqui Las Lenas', sport: 'ski', members: 130, whatsapp: 'https://chat.whatsapp.com/example9' },
+      { id: 'mendoza-main', name: 'Comunidad Mendoza', sport: 'padel', members: 771, whatsapp: 'https://chat.whatsapp.com/GW4KNeUH8Br8FJyLBAM53e', city: 'Ciudad de Mendoza', isMain: true },
+      { id: 'azcuenaga', name: 'Azcuenaga Padel', sport: 'padel', members: 65, whatsapp: 'https://chat.whatsapp.com/Ezb5h5oXQWHIzl0jU5SH8J', city: 'Lujan de Cuyo' },
     ]
   },
   {
-    id: 'patagonia',
-    name: 'Patagonia',
-    theme: 'patagonia',
-    palette: { ground: '#2a4a6a', groundAlt: '#3a5a7a', path: '#8ab4d4', accent: '#00bcd4' },
-    description: 'Glaciares, lengas, condores, guanacos, viento',
-    worldX: 20, worldY: 54, // South
-    communities: [
-      { id: 'pat-trekking', name: 'Trekking Bariloche', sport: 'trekking', members: 380, whatsapp: 'https://chat.whatsapp.com/example10' },
-      { id: 'pat-remo', name: 'Remo Nahuel Huapi', sport: 'rowing', members: 90, whatsapp: 'https://chat.whatsapp.com/example11' },
-      { id: 'pat-padel', name: 'Padel Sur', sport: 'padel', members: 140, whatsapp: 'https://chat.whatsapp.com/example12' },
-    ]
-  },
-  {
-    id: 'noa',
-    name: 'NOA',
-    theme: 'noa',
-    palette: { ground: '#8a5a2a', groundAlt: '#9a6a3a', path: '#d4956e', accent: '#ff9800' },
-    description: 'Cardones, llamas, Quebrada de Humahuaca, terracota',
-    worldX: 20, worldY: 4, // North
-    communities: [
-      { id: 'noa-futbol', name: 'Futbol Jujuy', sport: 'football', members: 260, whatsapp: 'https://chat.whatsapp.com/example13' },
-      { id: 'noa-tenis', name: 'Tenis Salta', sport: 'tennis', members: 110, whatsapp: 'https://chat.whatsapp.com/example14' },
-      { id: 'noa-running', name: 'Running Altiplano', sport: 'running', members: 195, whatsapp: 'https://chat.whatsapp.com/example15' },
-    ]
-  },
-  {
-    id: 'litoral',
-    name: 'Litoral',
+    id: 'rosario',
+    name: 'Rosario',
     theme: 'litoral',
     palette: { ground: '#3a6a3a', groundAlt: '#4a7a4a', path: '#8ab46e', accent: '#4caf50' },
-    description: 'Yerba mate, palmeras, carpinchos, rio Parana',
-    worldX: 52, worldY: 18, // Northeast
+    description: 'Cuna de la bandera, rio Parana, pasion futbolera',
+    worldX: 55, worldY: 10,
+    mapX: 62, mapY: 42,
     communities: [
-      { id: 'lit-remo', name: 'Remo Parana', sport: 'rowing', members: 160, whatsapp: 'https://chat.whatsapp.com/example16' },
-      { id: 'lit-futbol', name: 'Futbol Rosario', sport: 'football', members: 420, whatsapp: 'https://chat.whatsapp.com/example17' },
-      { id: 'lit-padel', name: 'Padel Entre Rios', sport: 'padel', members: 230, whatsapp: 'https://chat.whatsapp.com/example18' },
+      { id: 'rosario-main', name: 'Comunidad Rosario', sport: 'padel', members: 27, whatsapp: 'https://chat.whatsapp.com/KI7lpPqzTqUFetILZN5eqb', city: 'Rosario', isMain: true },
+      { id: 'el-92', name: 'El 92', sport: 'padel', members: 45, whatsapp: 'https://chat.whatsapp.com/Ib7g29qdF6eJcqAkAdUDYy', city: 'San Jose de la Esquina' },
+      { id: 'km8-club', name: 'KM8 Club', sport: 'padel', members: 60, whatsapp: 'https://chat.whatsapp.com/Ir6iKlVtG8d3pUeRene2TP', city: 'Santa Fe' },
     ]
   },
   {
-    id: 'pampas',
-    name: 'Pampas',
-    theme: 'pampas',
-    palette: { ground: '#6a8a3a', groundAlt: '#7a9a4a', path: '#c8b46e', accent: '#cddc39' },
-    description: 'Llanuras infinitas, estancias, caballos, pasto pampeano',
-    worldX: 38, worldY: 20, // East of center
+    id: 'tucuman',
+    name: 'Tucuman',
+    theme: 'noa',
+    palette: { ground: '#8a5a2a', groundAlt: '#9a6a3a', path: '#d4956e', accent: '#ff9800' },
+    description: 'Jardin de la Republica, empanadas, cerros verdes',
+    worldX: 35, worldY: 2,
+    mapX: 56, mapY: 22,
     communities: [
-      { id: 'pam-polo', name: 'Polo Buenos Aires', sport: 'polo', members: 85, whatsapp: 'https://chat.whatsapp.com/example21' },
-      { id: 'pam-padel', name: 'Padel La Plata', sport: 'padel', members: 270, whatsapp: 'https://chat.whatsapp.com/example22' },
-      { id: 'pam-running', name: 'Running Pampeano', sport: 'running', members: 310, whatsapp: 'https://chat.whatsapp.com/example23' },
-    ]
-  },
-  {
-    id: 'noreste',
-    name: 'Noreste',
-    theme: 'noreste',
-    palette: { ground: '#2a6a2a', groundAlt: '#1a5a1a', path: '#6ab46a', accent: '#00e676' },
-    description: 'Selva misionera, tucanes, Cataratas del Iguazu',
-    worldX: 52, worldY: 4, // Far northeast
-    communities: [
-      { id: 'ne-futbol', name: 'Futbol Misiones', sport: 'football', members: 290, whatsapp: 'https://chat.whatsapp.com/example24' },
-      { id: 'ne-tenis', name: 'Tenis Posadas', sport: 'tennis', members: 75, whatsapp: 'https://chat.whatsapp.com/example25' },
-      { id: 'ne-kayak', name: 'Kayak Iguazu', sport: 'kayak', members: 120, whatsapp: 'https://chat.whatsapp.com/example26' },
+      { id: 'tucuman-main', name: 'Comunidad Tucuman', sport: 'padel', members: 188, whatsapp: 'https://chat.whatsapp.com/G9cNLJr7Xgo4lZQSVpCSuO', city: 'San Miguel de Tucuman', isMain: true },
+      { id: 'padel-point', name: 'Padel Point', sport: 'padel', members: 75, whatsapp: 'https://chat.whatsapp.com/ERrMBTFheMdCfSe2rt55SQ', city: 'Yerba Buena' },
     ]
   },
   {
     id: 'neuquen',
     name: 'Neuquen',
-    theme: 'neuquen',
+    theme: 'patagonia',
     palette: { ground: '#4a6a5a', groundAlt: '#3a5a4a', path: '#8ab4a4', accent: '#26a69a' },
-    description: 'Araucarias, volcanes, termas, lagos color turquesa',
-    worldX: 4, worldY: 46, // Southwest
+    description: 'Lagos, volcanes, dinosaurios, petroleo',
+    worldX: 2, worldY: 75,
+    mapX: 45, mapY: 68,
     communities: [
-      { id: 'nqn-ski', name: 'Esqui Chapelco', sport: 'ski', members: 200, whatsapp: 'https://chat.whatsapp.com/example27' },
-      { id: 'nqn-padel', name: 'Padel Neuquen', sport: 'padel', members: 165, whatsapp: 'https://chat.whatsapp.com/example28' },
-      { id: 'nqn-trekking', name: 'Trekking Lanin', sport: 'trekking', members: 240, whatsapp: 'https://chat.whatsapp.com/example29' },
+      { id: 'neuquen-main', name: 'Comunidad Neuquen', sport: 'padel', members: 202, whatsapp: 'https://chat.whatsapp.com/JWNVHHrCouGJWPDChGZJnH', city: 'Ciudad de Neuquen', isMain: true },
+      { id: 'efecto-padel', name: 'Efecto Padel', sport: 'padel', members: 45, whatsapp: 'https://chat.whatsapp.com/HgGsPWQ1eQI3PojipWNHNa', city: '25 de Mayo' },
     ]
   },
   {
-    id: 'cuyo',
-    name: 'Cuyo',
+    id: 'mar-del-plata',
+    name: 'Mar del Plata',
+    theme: 'coastal',
+    palette: { ground: '#3a5a6a', groundAlt: '#4a6a7a', path: '#aaccdd', accent: '#00bcd4' },
+    description: 'La Feliz, playas, lobos marinos, alfajores',
+    worldX: 75, worldY: 75,
+    mapX: 70, mapY: 62,
+    communities: [
+      { id: 'mdp-main', name: 'Comunidad Mar del Plata', sport: 'padel', members: 338, whatsapp: 'https://chat.whatsapp.com/Jw12EFJM8jzKtMd6GAUSJI', city: 'Mar del Plata', isMain: true },
+    ]
+  },
+  {
+    id: 'la-plata',
+    name: 'La Plata',
+    theme: 'urban',
+    palette: { ground: '#5a5a6a', groundAlt: '#4a4a5a', path: '#7a7a8a', accent: '#2196f3' },
+    description: 'Ciudad de las diagonales, estudiantes, pincha y lobo',
+    worldX: 55, worldY: 75,
+    mapX: 73, mapY: 55,
+    communities: [
+      { id: 'la-plata-main', name: 'Comunidad La Plata', sport: 'padel', members: 66, whatsapp: 'https://chat.whatsapp.com/KwKWxXXg5Th1NkZJyTj2bS', city: 'La Plata', isMain: true },
+    ]
+  },
+  {
+    id: 'salta',
+    name: 'Salta',
+    theme: 'noa',
+    palette: { ground: '#9a6a3a', groundAlt: '#8a5a2a', path: '#c89a6e', accent: '#e65100' },
+    description: 'La linda, empanadas saltenas, cerros multicolores',
+    worldX: 15, worldY: 2,
+    mapX: 52, mapY: 18,
+    communities: [
+      { id: 'salta-main', name: 'Comunidad Salta', sport: 'padel', members: 83, whatsapp: 'https://chat.whatsapp.com/ICWGzwEwftsFVniDWHTKCa', city: 'Ciudad de Salta', isMain: true },
+    ]
+  },
+  {
+    id: 'san-juan',
+    name: 'San Juan',
     theme: 'cuyo',
     palette: { ground: '#9a7a4a', groundAlt: '#aa8a5a', path: '#c8a96e', accent: '#795548' },
-    description: 'Olivos, desierto, montanas rocosas, cielo azul intenso',
-    worldX: 4, worldY: 10, // Northwest corner
+    description: 'Sol, vino, Valle de la Luna, dique',
+    worldX: 2, worldY: 25,
+    mapX: 45, mapY: 42,
     communities: [
-      { id: 'cuyo-padel', name: 'Padel San Juan', sport: 'padel', members: 150, whatsapp: 'https://chat.whatsapp.com/example19' },
-      { id: 'cuyo-futbol', name: 'Futbol San Luis', sport: 'football', members: 200, whatsapp: 'https://chat.whatsapp.com/example20' },
-      { id: 'cuyo-ciclismo', name: 'Ciclismo Cuyo', sport: 'cycling', members: 175, whatsapp: 'https://chat.whatsapp.com/example30' },
+      { id: 'san-juan-main', name: 'Comunidad San Juan', sport: 'padel', members: 92, whatsapp: 'https://chat.whatsapp.com/DStJHwaCHt9BTz2TotcQw3', city: 'San Juan', isMain: true },
+    ]
+  },
+  {
+    id: 'formosa',
+    name: 'Formosa',
+    theme: 'noreste',
+    palette: { ground: '#2a6a2a', groundAlt: '#1a5a1a', path: '#6ab46a', accent: '#00e676' },
+    description: 'Calor, rio, monte, banados del chaco',
+    worldX: 75, worldY: 2,
+    mapX: 62, mapY: 22,
+    communities: [
+      { id: 'formosa-main', name: 'Comunidad Formosa', sport: 'padel', members: 151, whatsapp: 'https://chat.whatsapp.com/EevdhvdJji4J6AeFsJyp1G', city: 'Formosa', isMain: true },
+    ]
+  },
+  {
+    id: 'misiones',
+    name: 'Misiones',
+    theme: 'noreste',
+    palette: { ground: '#1a5a1a', groundAlt: '#2a6a2a', path: '#5aa45a', accent: '#4caf50' },
+    description: 'Cataratas, selva, yerba mate, tierra colorada',
+    worldX: 90, worldY: 10,
+    mapX: 72, mapY: 28,
+    communities: [
+      { id: 'blue-padel', name: 'Blue Padel Quincho', sport: 'padel', members: 55, whatsapp: 'https://chat.whatsapp.com/K6p7ZDy1XSp9a3tRirtBQr', city: 'El Dorado', isMain: true },
+      { id: 'libertad-padel', name: 'Libertad Padel', sport: 'padel', members: 65, whatsapp: 'https://chat.whatsapp.com/EkXVjqJ1KAC9WIfsBin0pL', city: 'Leandro N. Alem' },
+    ]
+  },
+  {
+    id: 'resistencia',
+    name: 'Resistencia',
+    theme: 'noreste',
+    palette: { ground: '#3a7a3a', groundAlt: '#2a6a2a', path: '#7ab47a', accent: '#66bb6a' },
+    description: 'Ciudad de las esculturas, calor, chamame',
+    worldX: 55, worldY: 2,
+    mapX: 62, mapY: 28,
+    communities: [
+      { id: 'resistencia-main', name: 'Comunidad Resistencia', sport: 'padel', members: 66, whatsapp: 'https://chat.whatsapp.com/EtV8Kkfrfa22i5yFMo4XyQ', city: 'Resistencia', isMain: true },
+    ]
+  },
+  {
+    id: 'jujuy',
+    name: 'Jujuy',
+    theme: 'noa',
+    palette: { ground: '#aa6a3a', groundAlt: '#9a5a2a', path: '#d4956e', accent: '#ff6f00' },
+    description: 'Quebrada de Humahuaca, cerros de colores, pachamama',
+    worldX: 2, worldY: 2,
+    mapX: 52, mapY: 12,
+    communities: [
+      { id: 'jujuy-main', name: 'Comunidad Jujuy', sport: 'padel', members: 7, whatsapp: 'https://chat.whatsapp.com/LRkWKmcuB7iIqyUFy4IX43', city: 'San Salvador de Jujuy', isMain: true },
+    ]
+  },
+  {
+    id: 'la-rioja',
+    name: 'La Rioja',
+    theme: 'cuyo',
+    palette: { ground: '#8a6a3a', groundAlt: '#9a7a4a', path: '#c8a96e', accent: '#a1887f' },
+    description: 'Talampaya, sol, olivos, vino torrontes',
+    worldX: 2, worldY: 60,
+    mapX: 48, mapY: 35,
+    communities: [
+      { id: 'la-rioja-main', name: 'Comunidad La Rioja', sport: 'padel', members: 48, whatsapp: 'https://chat.whatsapp.com/Jg3tYcaz0660zoky0EapQZ', city: 'La Rioja', isMain: true },
+      { id: 'camping-medico', name: 'Camping Medico', sport: 'padel', members: 35, whatsapp: 'https://chat.whatsapp.com/ExIEUKkHkVs2aBJj6rrMXx', city: 'Cochangasta' },
+    ]
+  },
+  {
+    id: 'tandil',
+    name: 'Tandil',
+    theme: 'pampas',
+    palette: { ground: '#6a8a3a', groundAlt: '#7a9a4a', path: '#c8b46e', accent: '#cddc39' },
+    description: 'Sierras bonaerenses, piedra movediza, salame',
+    worldX: 35, worldY: 75,
+    mapX: 68, mapY: 62,
+    communities: [
+      { id: 'tandil-main', name: 'Comunidad Tandil', sport: 'padel', members: 40, whatsapp: 'https://chat.whatsapp.com/HMCaMmFIili1UR6du3dZIQ', city: 'Tandil', isMain: true },
+    ]
+  },
+  {
+    id: 'entre-rios',
+    name: 'Entre Rios',
+    theme: 'litoral',
+    palette: { ground: '#4a7a4a', groundAlt: '#3a6a3a', path: '#9ab49a', accent: '#81c784' },
+    description: 'Termas, carnaval, arroyos, citrus',
+    worldX: 55, worldY: 30,
+    mapX: 68, mapY: 38,
+    communities: [
+      { id: 'la-quinta', name: 'La Quinta', sport: 'padel', members: 50, whatsapp: 'https://chat.whatsapp.com/ElJNSQdjww1JctOUBrb0ai', city: 'Islas Malvinas', isMain: true },
+    ]
+  },
+  {
+    id: 'buenos-aires',
+    name: 'Interior BsAs',
+    theme: 'pampas',
+    palette: { ground: '#7a9a4a', groundAlt: '#6a8a3a', path: '#d4c46e', accent: '#dce775' },
+    description: 'Llanura pampeana, estancias, campo infinito',
+    worldX: 20, worldY: 75,
+    mapX: 65, mapY: 58,
+    communities: [
+      { id: 'la-nave', name: 'La Nave Padel', sport: 'padel', members: 55, whatsapp: 'https://chat.whatsapp.com/JULhsyntLtmEXjh3Aynray', city: 'Azul', isMain: true },
+      { id: 'bejota', name: 'Bejota Padel', sport: 'padel', members: 45, whatsapp: 'https://chat.whatsapp.com/EQOy4OqySIt87de0hDEphU', city: 'Azul' },
+      { id: 'fultito-padel', name: 'Fultito Padel', sport: 'padel', members: 65, whatsapp: 'https://chat.whatsapp.com/BrNcS2B41ba3mtWdLqBaJt', city: 'Pergamino' },
+      { id: 'fultito-futbol', name: 'Fultito Futbol', sport: 'football', members: 80, whatsapp: 'https://chat.whatsapp.com/H2mqgjyBNpsAp7UqgLOFhf', city: 'Pergamino' },
+      { id: 'circuito-club', name: 'Circuito Club', sport: 'padel', members: 70, whatsapp: 'https://chat.whatsapp.com/Bo3alCpQoWB2nT7ewnMwZL', city: 'Ciudad Evita' },
     ]
   },
 ];
 
-// Hub buildings with positions relative to province
+// Total communities count
+const TOTAL_COMMUNITIES = REGIONS.reduce((acc, r) => acc + r.communities.length, 0);
+
+// Terminal log entry
+interface LogEntry {
+  id: number;
+  type: 'discovery' | 'travel' | 'info' | 'action';
+  message: string;
+  timestamp: Date;
+  link?: string;
+  community?: Community;
+}
+
+// Hub buildings with positions relative to region
 interface Building {
   community: Community;
-  province: Province;
+  region: Region;
   x: number;
   y: number;
   w: number;
   h: number;
+  isPlaza: boolean; // Es la plaza central
 }
 
-// Constants moved above PROVINCES definition
+// Calcular tamano de region segun cantidad de comunidades
+function getRegionSize(communityCount: number): { w: number; h: number } {
+  const clubs = communityCount - 1; // Sin contar la plaza
+  // Tamanos mas grandes para evitar solapamiento
+  if (clubs <= 2) return { w: 16, h: 14 };
+  if (clubs <= 4) return { w: 20, h: 18 };
+  return { w: 24, h: 20 };
+}
 
-// Build all buildings from provinces with proper grid layout
+// Build all buildings - plaza central + clubes alrededor
 function generateBuildings(): Building[] {
   const buildings: Building[] = [];
   
-  PROVINCES.forEach(province => {
-    // Layout de 3 comunidades en L dentro de la provincia con calles entre ellas
-    const layouts = [
-      { col: 0, row: 0 },  // top-left block
-      { col: 1, row: 0 },  // top-right block  
-      { col: 0, row: 1 },  // bottom-left block
+  REGIONS.forEach(region => {
+    const mainCommunity = region.communities.find(c => c.isMain);
+    const clubs = region.communities.filter(c => !c.isMain);
+    const size = getRegionSize(region.communities.length);
+    
+    // Plaza central (mas grande)
+    if (mainCommunity) {
+      const plazaSize = 5;
+      buildings.push({
+        community: mainCommunity,
+        region,
+        x: region.worldX + Math.floor(size.w / 2) - Math.floor(plazaSize / 2),
+        y: region.worldY + Math.floor(size.h / 2) - Math.floor(plazaSize / 2),
+        w: plazaSize,
+        h: plazaSize,
+        isPlaza: true,
+      });
+    }
+    
+    // Clubes alrededor de la plaza con mas separacion
+    // La plaza es 5x5, los clubes son 5x4, necesitamos al menos 1 tile de separacion
+    const positions = [
+      { dx: -7, dy: -5 },  // arriba-izq
+      { dx: 5, dy: -5 },   // arriba-der
+      { dx: -7, dy: 5 },   // abajo-izq
+      { dx: 5, dy: 5 },    // abajo-der
+      { dx: -7, dy: 0 },   // izq
+      { dx: 5, dy: 0 },    // der
     ];
     
-    province.communities.forEach((community, idx) => {
-      const layout = layouts[idx] || { col: idx % 2, row: Math.floor(idx / 2) };
-      // Building size: 5w x 4h tiles, with 2-tile street gap between them, 1-tile margin from province edge
-      const buildingX = province.worldX + 1 + layout.col * 7; // 5 building + 2 street
-      const buildingY = province.worldY + 1 + layout.row * 6; // 4 building + 2 street
+    clubs.forEach((community, idx) => {
+      if (idx >= positions.length) return;
+      const pos = positions[idx];
+      const centerX = region.worldX + Math.floor(size.w / 2);
+      const centerY = region.worldY + Math.floor(size.h / 2);
+      
       buildings.push({
         community,
-        province,
-        x: buildingX,
-        y: buildingY,
+        region,
+        x: centerX + pos.dx,
+        y: centerY + pos.dy,
         w: 5,
         h: 4,
+        isPlaza: false,
       });
     });
   });
@@ -229,18 +429,33 @@ function generateBuildings(): Building[] {
 export default function GamePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [showMap, setShowMap] = useState(false);
-  const [currentProvince, setCurrentProvince] = useState<Province | null>(null);
-  const [currentCommunity, setCurrentCommunity] = useState<Community | null>(null);
+  const [mapView, setMapView] = useState<'list' | 'map'>('list');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentRegion, setCurrentRegion] = useState<Region | null>(null);
   const [discoveredCount, setDiscoveredCount] = useState(0);
   const [showHint, setShowHint] = useState(true);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
+  const [terminalLogs, setTerminalLogs] = useState<LogEntry[]>([]);
+  const [mounted, setMounted] = useState(false);
   
-  // Game state refs - spawn on the main road OUTSIDE the stadium
-  // World center is at 35*32 = 1120, stadium is at 32-38, so spawn at 40*32
+  // Initialize logs only on client to avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+    logIdRef.current = 2;
+    setTerminalLogs([
+      { id: 0, type: 'info', message: 'Bienvenido a ATC Campus', timestamp: new Date() },
+      { id: 1, type: 'info', message: 'Explora las comunidades de Argentina', timestamp: new Date() },
+    ]);
+  }, []);
+  const [terminalMode, setTerminalMode] = useState<'mini' | 'normal' | 'full'>('normal'); // mini=minimizado, normal=3 lineas, full=pantalla completa
+  const [pendingAction, setPendingAction] = useState<{ community: Community; region: Region } | null>(null); // Comunidad esperando accion
+  const terminalRef = useRef<HTMLDivElement>(null);
+  const logIdRef = useRef(0);
+  
+  // Game state refs - spawn EAST of stadium on the road
+  // Stadium is at (48-53, 48-53), so spawn at x=55 (outside)
   const playerRef = useRef({
-    x: 40 * TILE, // Spawn east of stadium on the main road
-    y: 35 * TILE, // Center Y
+    x: 56 * TILE,
+    y: 50 * TILE,
     w: 16,
     h: 20,
     speed: 2.5,
@@ -258,38 +473,68 @@ export default function GamePage() {
   const discoveredRef = useRef<Set<string>>(new Set());
   const fadeRef = useRef({ active: false, alpha: 0, targetX: 0, targetY: 0, phase: 'none' as 'none' | 'out' | 'in' });
 
-  // Toast helper
-  const showToastMessage = useCallback((message: string) => {
-    setToastMessage(message);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 2000);
+  // Add log entry
+  const addLog = useCallback((type: LogEntry['type'], message: string, link?: string, community?: Community) => {
+    const newLog: LogEntry = {
+      id: logIdRef.current++,
+      type,
+      message,
+      timestamp: new Date(),
+      link,
+      community,
+    };
+    setTerminalLogs(prev => [...prev.slice(-50), newLog]); // Keep last 50 entries
+    
+    // Auto scroll terminal
+    setTimeout(() => {
+      if (terminalRef.current) {
+        terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+      }
+    }, 50);
   }, []);
 
-  // Get province at position
-  const getProvinceAt = useCallback((x: number, y: number): Province | null => {
-    for (const p of PROVINCES) {
-      const px = p.worldX * TILE;
-      const py = p.worldY * TILE;
-      const pw = 14 * TILE;
-      const ph = 12 * TILE;
-      if (x >= px && x < px + pw && y >= py && y < py + ph) {
-        return p;
+  // Filter regions/communities based on search
+  const filteredRegions = searchQuery.trim() === '' 
+    ? REGIONS 
+    : REGIONS.filter(r => 
+        r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.communities.some(c => 
+          c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (c.city && c.city.toLowerCase().includes(searchQuery.toLowerCase()))
+        )
+      );
+
+  // Get region at position
+  const getRegionAt = useCallback((x: number, y: number): Region | null => {
+    for (const r of REGIONS) {
+      const size = getRegionSize(r.communities.length);
+      const rx = r.worldX * TILE;
+      const ry = r.worldY * TILE;
+      const rw = size.w * TILE;
+      const rh = size.h * TILE;
+      if (x >= rx && x < rx + rw && y >= ry && y < ry + rh) {
+        return r;
       }
     }
     return null;
   }, []);
 
   // Fast travel handler
-  const handleFastTravel = useCallback((province: Province) => {
-    fadeRef.current = {
-      active: true,
-      alpha: 0,
-      targetX: (province.worldX + 7) * TILE,
-      targetY: (province.worldY + 6) * TILE,
-      phase: 'out'
-    };
-    setShowMap(false);
-  }, []);
+const handleFastTravel = useCallback((region: Region) => {
+  const size = getRegionSize(region.communities.length);
+  // Spawn a la DERECHA de la plaza central (en el camino), no dentro
+  // La plaza esta en el centro, asi que spawneamos +4 tiles a la derecha
+  fadeRef.current = {
+  active: true,
+  alpha: 0,
+  targetX: (region.worldX + size.w / 2 + 4) * TILE,
+  targetY: (region.worldY + size.h / 2) * TILE,
+  phase: 'out'
+  };
+  setShowMap(false);
+  setSearchQuery('');
+  addLog('travel', `Viajando a ${region.name}...`);
+  }, [addLog]);
 
   // Hide hint after 3 seconds
   useEffect(() => {
@@ -316,6 +561,7 @@ export default function GamePage() {
     const handleKeyDown = (e: KeyboardEvent) => {
       keysRef.current[e.key] = true;
       if (e.key === 'm' || e.key === 'M') setShowMap(prev => !prev);
+      if (e.key === 't' || e.key === 'T') setTerminalMode(prev => prev === 'mini' ? 'normal' : 'mini');
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       keysRef.current[e.key] = false;
@@ -323,142 +569,119 @@ export default function GamePage() {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
-    // Stadium center - positioned in the middle of the 70x70 world
+    // Stadium center
     const STADIUM = {
-      x: 32, // Center of 70-tile world
-      y: 32,
-      w: 6,
-      h: 6,
+      x: 48,
+      y: 48,
+      w: 5,
+      h: 5,
     };
 
-    // Draw sport-specific building design
-    const drawSportBuilding = (
+    // Draw plaza (comunidad principal)
+    const drawPlaza = (
+      bx: number, by: number, bw: number, bh: number,
+      accent: string, discovered: boolean, name: string
+    ) => {
+      // Fondo de plaza - cesped
+      ctx.fillStyle = '#3a7a3a';
+      ctx.fillRect(bx, by, bw, bh);
+      
+      // Bordes decorativos
+      ctx.fillStyle = '#5a5a5a';
+      ctx.fillRect(bx, by, bw, 3);
+      ctx.fillRect(bx, by + bh - 3, bw, 3);
+      ctx.fillRect(bx, by, 3, bh);
+      ctx.fillRect(bx + bw - 3, by, 3, bh);
+      
+      // Fuente central
+      ctx.fillStyle = '#6ab4d4';
+      ctx.beginPath();
+      ctx.arc(bx + bw/2, by + bh/2, bw/4, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Borde de la fuente
+      ctx.strokeStyle = '#888';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Bancos (rectangulos pequenos)
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(bx + 8, by + 8, 12, 4);
+      ctx.fillRect(bx + bw - 20, by + 8, 12, 4);
+      ctx.fillRect(bx + 8, by + bh - 12, 12, 4);
+      ctx.fillRect(bx + bw - 20, by + bh - 12, 12, 4);
+      
+      // Faroles
+      ctx.fillStyle = '#333';
+      ctx.fillRect(bx + 6, by + 6, 2, 8);
+      ctx.fillRect(bx + bw - 8, by + 6, 2, 8);
+      ctx.fillStyle = '#ffff88';
+      ctx.fillRect(bx + 5, by + 4, 4, 3);
+      ctx.fillRect(bx + bw - 9, by + 4, 4, 3);
+      
+      // Indicador de descubierto
+      if (discovered) {
+        ctx.strokeStyle = '#09D85D';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(bx + 1, by + 1, bw - 2, bh - 2);
+      } else {
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(bx + 1, by + 1, bw - 2, bh - 2);
+      }
+    };
+
+    // Draw club building
+    const drawClubBuilding = (
       bx: number, by: number, bw: number, bh: number,
       sport: SportType, accent: string, discovered: boolean
     ) => {
-      // Shadow
+      // Sombra
       ctx.fillStyle = 'rgba(0,0,0,0.25)';
       ctx.fillRect(bx + 4, by + 4, bw, bh);
 
-      // Base building
+      // Edificio base
       ctx.fillStyle = '#2c3e50';
       ctx.fillRect(bx, by, bw, bh);
 
-      // Sport-specific top decoration
-      const topH = bh * 0.35;
-      ctx.fillStyle = accent;
+      const topH = bh * 0.4;
       
+      // Cancha segun deporte
       switch (sport) {
         case 'padel':
-          // Blue court top view
           ctx.fillStyle = '#1a5a9a';
-          ctx.fillRect(bx, by, bw, topH);
-          // Net
+          ctx.fillRect(bx + 2, by + 2, bw - 4, topH);
           ctx.fillStyle = '#ffffff';
-          ctx.fillRect(bx + bw/2 - 1, by + 2, 2, topH - 4);
+          ctx.fillRect(bx + bw/2 - 1, by + 4, 2, topH - 6);
           break;
           
         case 'football':
-          // Green field
           ctx.fillStyle = '#2d7a35';
-          ctx.fillRect(bx, by, bw, topH);
-          // Lines
+          ctx.fillRect(bx + 2, by + 2, bw - 4, topH);
           ctx.fillStyle = '#ffffff';
-          ctx.fillRect(bx + 4, by + 2, bw - 8, 1);
-          ctx.fillRect(bx + 4, by + topH - 3, bw - 8, 1);
-          ctx.fillRect(bx + bw/2 - 1, by + 2, 1, topH - 4);
+          ctx.fillRect(bx + 6, by + 4, bw - 12, 1);
+          ctx.fillRect(bx + 6, by + topH - 2, bw - 12, 1);
+          ctx.fillRect(bx + bw/2 - 1, by + 4, 1, topH - 6);
           break;
           
         case 'tennis':
-          // Orange clay
           ctx.fillStyle = '#c85a2a';
-          ctx.fillRect(bx, by, bw, topH);
-          // Lines
+          ctx.fillRect(bx + 2, by + 2, bw - 4, topH);
           ctx.fillStyle = '#ffffff';
-          ctx.fillRect(bx + 3, by + 2, bw - 6, 1);
-          ctx.fillRect(bx + bw/2 - 1, by + 2, 1, topH - 4);
-          break;
-          
-        case 'rowing':
-        case 'kayak':
-          // Water
-          ctx.fillStyle = '#2288bb';
-          ctx.fillRect(bx, by, bw, topH);
-          // Waves
-          ctx.fillStyle = '#4aa8db';
-          for (let i = 0; i < 3; i++) {
-            ctx.fillRect(bx + 4 + i * 12, by + 4 + i * 3, 8, 2);
-          }
-          // Dock
-          ctx.fillStyle = '#8a6a4a';
-          ctx.fillRect(bx + 2, by + topH - 6, 12, 4);
-          break;
-          
-        case 'trekking':
-        case 'ski':
-          // Mountain
-          ctx.fillStyle = sport === 'ski' ? '#aaccee' : '#6a7a5a';
-          ctx.fillRect(bx, by, bw, topH);
-          // Peak
-          ctx.beginPath();
-          ctx.fillStyle = '#ffffff';
-          ctx.moveTo(bx + bw/2, by + 2);
-          ctx.lineTo(bx + bw/2 - 10, by + topH);
-          ctx.lineTo(bx + bw/2 + 10, by + topH);
-          ctx.closePath();
-          ctx.fill();
-          // Snow cap
-          ctx.fillStyle = '#ffffff';
-          ctx.beginPath();
-          ctx.moveTo(bx + bw/2, by + 2);
-          ctx.lineTo(bx + bw/2 - 5, by + 10);
-          ctx.lineTo(bx + bw/2 + 5, by + 10);
-          ctx.closePath();
-          ctx.fill();
-          break;
-          
-        case 'cycling':
-          // Track
-          ctx.fillStyle = '#5a5a6a';
-          ctx.fillRect(bx, by, bw, topH);
-          // Oval track
-          ctx.strokeStyle = '#ffaa00';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.ellipse(bx + bw/2, by + topH/2, bw/2 - 6, topH/2 - 4, 0, 0, Math.PI * 2);
-          ctx.stroke();
-          break;
-          
-        case 'polo':
-          // Green field wide
-          ctx.fillStyle = '#3a8a3a';
-          ctx.fillRect(bx, by, bw, topH);
-          // Horse silhouette (simple)
-          ctx.fillStyle = '#5a4a3a';
-          ctx.fillRect(bx + bw/2 - 4, by + 4, 8, 6);
-          ctx.fillRect(bx + bw/2 - 6, by + 10, 4, 4);
-          break;
-          
-        case 'running':
-          // Track lanes
-          ctx.fillStyle = '#c85a3a';
-          ctx.fillRect(bx, by, bw, topH);
-          ctx.fillStyle = '#ffffff';
-          for (let i = 0; i < 4; i++) {
-            ctx.fillRect(bx + 4, by + 3 + i * 4, bw - 8, 1);
-          }
+          ctx.fillRect(bx + 4, by + 4, bw - 8, 1);
+          ctx.fillRect(bx + bw/2 - 1, by + 4, 1, topH - 6);
           break;
           
         default:
           ctx.fillStyle = accent;
-          ctx.fillRect(bx, by, bw, topH);
+          ctx.fillRect(bx + 2, by + 2, bw - 4, topH);
       }
 
-      // Building walls
+      // Parte inferior
       ctx.fillStyle = '#1a252f';
       ctx.fillRect(bx, by + topH, bw, bh - topH);
 
-      // Door
+      // Puerta
       const dx = bx + bw/2 - 6;
       const dy = by + bh - 14;
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
@@ -466,249 +689,98 @@ export default function GamePage() {
       ctx.fillStyle = '#007744';
       ctx.fillRect(dx + 1, dy + 1, 10, 12);
 
-      // Windows
+      // Ventanas
       ctx.fillStyle = 'rgba(255,255,200,0.7)';
       ctx.fillRect(bx + 6, by + topH + 6, 8, 6);
       ctx.fillRect(bx + bw - 14, by + topH + 6, 8, 6);
 
-      // Discovered border
       if (discovered) {
-        ctx.strokeStyle = '#00ff88';
+        ctx.strokeStyle = '#09D85D';
         ctx.lineWidth = 2;
         ctx.strokeRect(bx + 1, by + 1, bw - 2, bh - 2);
       }
     };
 
+    // Hash for random
+    const hash = (x: number, y: number): number => {
+      const n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+      return n - Math.floor(n);
+    };
+
     // Draw themed tile
-    const drawThemedTile = (tx: number, ty: number, wx: number, wy: number, province: Province | null) => {
-      if (!province) {
-        // Default grass
-        const isAlt = (tx + ty) % 2 === 0;
-        ctx.fillStyle = isAlt ? '#2d6035' : '#3a7d44';
+    const drawThemedTile = (tx: number, ty: number, wx: number, wy: number, region: Region | null) => {
+      const h = hash(tx, ty);
+      const h2 = hash(tx + 100, ty + 100);
+      const h3 = hash(tx * 3, ty * 3);
+      
+      if (!region) {
+        const baseGreen = 58 + Math.floor(h * 12);
+        const greenVariation = 125 + Math.floor(h2 * 20);
+        ctx.fillStyle = `rgb(${baseGreen}, ${greenVariation}, ${50 + Math.floor(h * 10)})`;
         ctx.fillRect(wx, wy, TILE, TILE);
+        
+        if (h3 > 0.7) {
+          ctx.fillStyle = 'rgba(30,80,30,0.4)';
+          const gx = Math.floor(h * 24);
+          const gy = Math.floor(h2 * 24);
+          ctx.fillRect(wx + gx, wy + gy, 2, 5);
+          ctx.fillRect(wx + gx + 3, wy + gy + 1, 2, 4);
+        }
+        if (h > 0.85) {
+          ctx.fillStyle = 'rgba(100,160,80,0.5)';
+          const gx = Math.floor(h2 * 20) + 4;
+          const gy = Math.floor(h3 * 20) + 4;
+          ctx.fillRect(wx + gx, wy + gy, 3, 6);
+        }
         return;
       }
 
-      const { ground, groundAlt } = province.palette;
-      const isAlt = (tx + ty) % 2 === 0;
-      ctx.fillStyle = isAlt ? groundAlt : ground;
+      const { ground, groundAlt } = region.palette;
+      ctx.fillStyle = h > 0.5 ? ground : groundAlt;
+      ctx.fillRect(wx, wy, TILE, TILE);
+      ctx.fillStyle = `rgba(${h > 0.5 ? '255,255,255' : '0,0,0'},${0.02 + h2 * 0.04})`;
       ctx.fillRect(wx, wy, TILE, TILE);
 
-      // Theme-specific decorations
-      const seed = (tx * 7 + ty * 13) % 100;
-      
-      switch (province.theme) {
+      switch (region.theme) {
         case 'urban':
-          // Adoquines pattern
-          ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-          ctx.lineWidth = 1;
-          for (let i = 0; i < 4; i++) {
-            ctx.strokeRect(wx + i * 8, wy, 8, 16);
-            ctx.strokeRect(wx + i * 8 + 4, wy + 16, 8, 16);
-          }
-          // Faroles
-          if (seed < 8 && tx % 4 === 0) {
-            ctx.fillStyle = '#3a3a3a';
-            ctx.fillRect(wx + 14, wy + 2, 4, 20);
-            ctx.fillStyle = '#ffdd88';
-            ctx.fillRect(wx + 12, wy, 8, 6);
+        case 'suburban':
+        case 'industrial':
+          if (h > 0.3) {
+            ctx.fillStyle = 'rgba(0,0,0,0.08)';
+            ctx.fillRect(wx + Math.floor(h * 28), wy + Math.floor(h2 * 28), 4, 4);
           }
           break;
-          
         case 'sierras':
-          // Piedritas
-          if (seed < 30) {
-            ctx.fillStyle = 'rgba(100,90,80,0.4)';
-            ctx.fillRect(wx + (seed % 20), wy + (seed % 15), 4, 3);
+          if (h > 0.85) {
+            ctx.fillStyle = 'rgba(100,90,80,0.5)';
+            ctx.fillRect(wx + Math.floor(h2 * 20) + 4, wy + Math.floor(h3 * 20) + 4, 6, 4);
           }
           break;
-          
-        case 'andes':
-        case 'cuyo':
-          // Cactus pequeños
-          if (seed < 10 && tx % 6 === 0) {
+        case 'patagonia':
+          if (h > 0.75) {
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
+            const size = 4 + Math.floor(h2 * 6);
+            ctx.fillRect(wx + Math.floor(h3 * 20) + 4, wy + Math.floor(h * 20) + 4, size, size);
+          }
+          break;
+        case 'noa':
+          if (h > 0.92) {
             ctx.fillStyle = '#4a6a3a';
-            ctx.fillRect(wx + 12, wy + 8, 4, 16);
-            ctx.fillRect(wx + 8, wy + 12, 4, 8);
-            ctx.fillRect(wx + 16, wy + 14, 4, 6);
+            ctx.fillRect(wx + 14, wy + 8, 3, 16);
+            ctx.fillRect(wx + 11, wy + 12, 3, 4);
           }
           break;
-          
-        case 'patagonia':
-          // Manchas de nieve
-          if (seed < 25) {
-            ctx.fillStyle = 'rgba(255,255,255,0.5)';
-            ctx.beginPath();
-            ctx.arc(wx + 16, wy + 16, 6 + (seed % 4), 0, Math.PI * 2);
-            ctx.fill();
-          }
-          break;
-          
-        case 'noa':
-          // Cardones
-          if (seed < 8 && tx % 5 === 0) {
-            ctx.fillStyle = '#5a7a4a';
-            ctx.fillRect(wx + 14, wy + 4, 4, 24);
-            ctx.fillRect(wx + 10, wy + 8, 4, 10);
-            ctx.fillRect(wx + 18, wy + 10, 4, 8);
-          }
-          break;
-          
-        case 'litoral':
-          // Palmeras pequeñas
-          if (seed < 6 && tx % 7 === 0) {
-            ctx.fillStyle = '#5a3a1a';
-            ctx.fillRect(wx + 14, wy + 10, 4, 18);
-            ctx.fillStyle = '#3a8a3a';
-            ctx.fillRect(wx + 8, wy + 4, 16, 8);
-          }
-          break;
-          
-        case 'pampas':
-          // Ondas de pasto
-          ctx.strokeStyle = 'rgba(100,120,60,0.3)';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(wx, wy + 16 + (seed % 8));
-          ctx.quadraticCurveTo(wx + 16, wy + 12, wx + 32, wy + 16 + (seed % 6));
-          ctx.stroke();
-          break;
-          
-        case 'noreste':
-          // Flores de colores
-          if (seed < 20) {
-            const colors = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff'];
-            ctx.fillStyle = colors[seed % 4];
-            ctx.beginPath();
-            ctx.arc(wx + 8 + (seed % 16), wy + 8 + (seed % 12), 3, 0, Math.PI * 2);
-            ctx.fill();
-          }
-          break;
-          
-        case 'neuquen':
-          // Araucarias
-          if (seed < 5 && tx % 6 === 0) {
-            ctx.fillStyle = '#3a2a1a';
-            ctx.fillRect(wx + 14, wy + 12, 4, 16);
-            ctx.fillStyle = '#2a4a2a';
-            for (let i = 0; i < 4; i++) {
-              ctx.fillRect(wx + 10 - i, wy + 4 + i * 3, 12 + i * 2, 3);
-            }
-          }
-          break;
-      }
-    };
-
-    // Draw province streets
-    const drawProvinceStreets = (province: Province, camX: number, camY: number) => {
-      const px = province.worldX * TILE - camX;
-      const py = province.worldY * TILE - camY;
-      const pw = 14 * TILE;
-      const ph = 12 * TILE;
-      
-      // Skip if out of viewport
-      if (px > canvas.width + 64 || px + pw < -64 || py > canvas.height + 64 || py + ph < -64) return;
-      
-      const { path, accent } = province.palette;
-      
-      // === PROVINCE BORDER (subtle) ===
-      ctx.strokeStyle = accent + '44';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(px, py, pw, ph);
-      
-      // === MAIN INTERNAL STREETS ===
-      // Horizontal street at row 5 (middle-ish)
-      ctx.fillStyle = path;
-      ctx.fillRect(px, py + 5 * TILE, pw, 2 * TILE);
-      
-      // Vertical street at col 6 (middle)
-      ctx.fillRect(px + 6 * TILE, py, 2 * TILE, ph);
-      
-      // === STREET DETAILS (sidewalk lines) ===
-      ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(px, py + 5 * TILE, pw, 2 * TILE);
-      
-      // === PROVINCE NAME SIGN (entrada) ===
-      ctx.fillStyle = accent;
-      ctx.fillRect(px + 6 * TILE + 4, py + 2, 56, 18);
-      ctx.fillStyle = '#000000';
-      ctx.font = 'bold 10px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(province.name.toUpperCase(), px + 6 * TILE + 32, py + 15);
-      
-      // === THEME-SPECIFIC STREET DECORATIONS ===
-      switch (province.theme) {
-        case 'urban':
-          // Crosswalk stripes at intersection
-          ctx.fillStyle = 'rgba(255,255,255,0.6)';
-          for (let i = 0; i < 5; i++) {
-            ctx.fillRect(px + 6 * TILE, py + 5 * TILE + 4 + i * 7, 2 * TILE, 4);
-          }
-          // Street lamps at corners of intersection
-          [[0,0],[1,0],[0,1],[1,1]].forEach(([c,r]) => {
-            const lx = px + (6 + c * 2) * TILE - 4;
-            const ly = py + (5 + r * 2) * TILE - 4;
-            ctx.fillStyle = '#3a3a4a';
-            ctx.fillRect(lx, ly, 3, 20);
-            ctx.fillStyle = '#ffdd88aa';
-            ctx.fillRect(lx - 3, ly, 9, 5);
-          });
-          break;
-          
-        case 'noa':
-          // Colored arches / adobe style street markers
-          ctx.fillStyle = accent + '88';
-          ctx.fillRect(px + 5 * TILE, py + 5 * TILE - 8, 4 * TILE, 8);
-          // Patterned border
-          for (let i = 0; i < 7; i++) {
-            ctx.fillStyle = i % 2 === 0 ? '#cc4400' : '#ffaa00';
-            ctx.fillRect(px + (i * 2) * TILE, py, 2 * TILE, 4);
-          }
-          break;
-          
-        case 'patagonia':
-        case 'neuquen':
-          // Dirt path style (dots/gravel)
-          ctx.fillStyle = 'rgba(180,160,130,0.4)';
-          for (let i = 0; i < pw / 8; i++) {
-            ctx.fillRect(px + i * 8 + 2, py + 5 * TILE + 12, 4, 4);
-            ctx.fillRect(px + i * 8 + 2, py + 6 * TILE + 4, 4, 4);
-          }
-          break;
-          
         case 'litoral':
         case 'noreste':
-          // Dirt path with flower dots on sides
-          const flowerColors = ['#ff6b6b', '#ffd93d', '#ff8c42'];
-          for (let i = 0; i < 8; i++) {
-            ctx.fillStyle = flowerColors[i % 3];
-            ctx.beginPath();
-            ctx.arc(px + i * (pw/8) + 16, py + 5 * TILE - 8, 4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(px + i * (pw/8) + 16, py + 7 * TILE + 8, 4, 0, Math.PI * 2);
-            ctx.fill();
+          if (h > 0.8) {
+            ctx.fillStyle = 'rgba(40,100,40,0.4)';
+            ctx.fillRect(wx + Math.floor(h2 * 22) + 2, wy + Math.floor(h3 * 18) + 4, 4, 7);
           }
           break;
-          
-        case 'sierras':
-        case 'andes':
-        case 'cuyo':
-          // Rocky path edges
-          ctx.fillStyle = 'rgba(150,130,100,0.5)';
-          for (let i = 0; i < 6; i++) {
-            ctx.fillRect(px + i * (pw/6) + 4, py + 5 * TILE - 5, 8, 4);
-            ctx.fillRect(px + i * (pw/6) + 4, py + 7 * TILE + 2, 8, 4);
-          }
-          break;
-          
         case 'pampas':
-          // Wide open path, fence posts
-          ctx.fillStyle = '#8a6a4a';
-          for (let i = 0; i < pw / TILE; i++) {
-            ctx.fillRect(px + i * TILE + 14, py + 5 * TILE - 6, 4, 10);
-            ctx.fillRect(px + i * TILE + 14, py + 7 * TILE - 4, 4, 10);
+          if (h > 0.6) {
+            ctx.fillStyle = 'rgba(100,130,60,0.35)';
+            ctx.fillRect(wx + Math.floor(h2 * 24), wy + Math.floor(h3 * 22), 3, 6);
           }
           break;
       }
@@ -716,707 +788,686 @@ export default function GamePage() {
 
     // Draw player
     const drawPlayer = (px: number, py: number) => {
-      const player = playerRef.current;
-      const x = Math.floor(px - player.w / 2);
-      const y = Math.floor(py - player.h / 2);
-
-      // Shadow
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
-      ctx.beginPath();
-      ctx.ellipse(x + 8, y + player.h + 2, 7, 3, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      const bodyColor = '#2255aa';
-      const skinColor = '#f5c89a';
-      const hairColor = '#1a1a1a';
-      const shoeColor = '#222';
-
-      const legOff = player.moving ? Math.sin(player.frame * 0.8) * 3 : 0;
-
-      // Shoes
-      ctx.fillStyle = shoeColor;
-      ctx.fillRect(x + 3, y + 14, 4, 5);
-      ctx.fillRect(x + 9, y + 14, 4, 5);
-
-      // Legs
-      ctx.fillStyle = '#1a3a7a';
-      ctx.fillRect(x + 3, y + 11 + legOff, 4, 5);
-      ctx.fillRect(x + 9, y + 11 - legOff, 4, 5);
-
-      // Body
-      ctx.fillStyle = bodyColor;
-      ctx.fillRect(x + 2, y + 7, 12, 7);
-
-      // Arms
-      ctx.fillStyle = bodyColor;
-      ctx.fillRect(x, y + 7 + legOff, 3, 6);
-      ctx.fillStyle = skinColor;
-      ctx.fillRect(x, y + 13 + legOff, 3, 3);
-
-      ctx.fillStyle = bodyColor;
-      ctx.fillRect(x + 13, y + 7 - legOff, 3, 6);
-      ctx.fillStyle = skinColor;
-      ctx.fillRect(x + 13, y + 13 - legOff, 3, 3);
-
-      // Head
-      ctx.fillStyle = skinColor;
-      ctx.fillRect(x + 3, y + 1, 10, 9);
-
-      // Hair/cap
-      ctx.fillStyle = hairColor;
-      ctx.fillRect(x + 3, y + 1, 10, 4);
-      ctx.fillRect(x + 1, y + 3, 3, 2);
-      ctx.fillRect(x + 12, y + 3, 3, 2);
-
-      // Eyes
-      ctx.fillStyle = '#222';
-      if (player.dir === 'down' || player.dir === 'left' || player.dir === 'right') {
-        ctx.fillRect(x + 5, y + 6, 2, 2);
-        ctx.fillRect(x + 9, y + 6, 2, 2);
-      }
-
-      // ATC text on shirt
-      ctx.fillStyle = '#00ff88';
-      ctx.font = 'bold 5px "Courier New"';
-      ctx.textAlign = 'center';
-      ctx.fillText('ATC', x + 8, y + 13);
-    };
-
-    // Draw stadium
-    const drawStadium = (cx: number, cy: number) => {
-      const sx = STADIUM.x * TILE - cx;
-      const sy = STADIUM.y * TILE - cy;
-      const sw = STADIUM.w * TILE;
-      const sh = STADIUM.h * TILE;
-
-      // Shadow
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
-      ctx.beginPath();
-      ctx.ellipse(sx + sw/2 + 4, sy + sh/2 + 4, sw/2 + 8, sh/2 + 6, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Outer ring
-      ctx.fillStyle = '#1a3a6b';
-      ctx.beginPath();
-      ctx.ellipse(sx + sw/2, sy + sh/2, sw/2 + 8, sh/2 + 6, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Inner ring
-      ctx.fillStyle = '#2a4a7b';
-      ctx.beginPath();
-      ctx.ellipse(sx + sw/2, sy + sh/2, sw/2 - 4, sh/2 - 2, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Field
-      ctx.fillStyle = '#2d7a35';
-      ctx.beginPath();
-      ctx.ellipse(sx + sw/2, sy + sh/2, sw/2 - 16, sh/2 - 12, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // ATC Logo text
-      ctx.fillStyle = '#00ff88';
-      ctx.font = 'bold 14px "Courier New"';
-      ctx.textAlign = 'center';
-      ctx.fillText('ATC', sx + sw/2, sy + sh/2 - 8);
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(px + 2, py + 18, 5, 2);
+      ctx.fillRect(px + 9, py + 18, 5, 2);
+      ctx.fillStyle = '#1a2a3a';
+      ctx.fillRect(px + 3, py + 12, 10, 7);
+      ctx.fillStyle = '#00564B';
+      ctx.fillRect(px + 2, py + 6, 12, 7);
+      ctx.fillStyle = '#f4c7a8';
+      ctx.fillRect(px + 4, py, 8, 7);
+      ctx.fillStyle = '#2a1a0a';
+      ctx.fillRect(px + 4, py, 8, 3);
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 8px "Courier New"';
-      ctx.fillText('CAMPUS', sx + sw/2, sy + sh/2 + 4);
-
-      // Entry points (4 cardinal)
-      ctx.fillStyle = '#c8a96e';
-      ctx.fillRect(sx + sw/2 - 8, sy - 12, 16, 16);
-      ctx.fillRect(sx + sw/2 - 8, sy + sh - 4, 16, 16);
-      ctx.fillRect(sx - 12, sy + sh/2 - 8, 16, 16);
-      ctx.fillRect(sx + sw - 4, sy + sh/2 - 8, 16, 16);
+      ctx.fillRect(px + 5, py + 3, 2, 2);
+      ctx.fillRect(px + 9, py + 3, 2, 2);
     };
 
-    // Main draw
-    const drawWorld = (cx: number, cy: number) => {
-      ctx.fillStyle = '#2d5a27';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      const startTX = Math.floor(cx / TILE) - 2;
-      const startTY = Math.floor(cy / TILE) - 2;
-      const endTX = Math.ceil((cx + canvas.width) / TILE) + 2;
-      const endTY = Math.ceil((cy + canvas.height) / TILE) + 2;
-
-      // Draw tiles
-      for (let ty = startTY; ty < endTY; ty++) {
-        for (let tx = startTX; tx < endTX; tx++) {
-          if (tx < 0 || ty < 0 || tx >= WORLD_W || ty >= WORLD_H) continue;
-          const wx = tx * TILE - cx;
-          const wy = ty * TILE - cy;
-          const province = getProvinceAt(tx * TILE + TILE/2, ty * TILE + TILE/2);
-          drawThemedTile(tx, ty, wx, wy, province);
-        }
-      }
-
-      // Draw paths between provinces
-      ctx.fillStyle = '#c8a96e';
-      const pathW = TILE * 2;
-      const centerX = (WORLD_W / 2) * TILE - cx;
-      const centerY = (WORLD_H / 2) * TILE - cy;
-      
-      // Main cross paths
-      ctx.fillRect(-cx, centerY - pathW/2, WORLD_PX, pathW);
-      ctx.fillRect(centerX - pathW/2, -cy, pathW, WORLD_PY);
-
-      // Draw province streets BEFORE buildings
-      PROVINCES.forEach(p => drawProvinceStreets(p, cx, cy));
-
-      // Draw stadium
-      drawStadium(cx, cy);
-
-      // Draw buildings
-      buildingsRef.current.forEach(b => {
-        const bx = b.x * TILE - cx;
-        const by = b.y * TILE - cy;
-        const bw = b.w * TILE;
-        const bh = b.h * TILE;
-
-        if (bx > canvas.width + 50 || by > canvas.height + 50 || bx < -bw - 50 || by < -bh - 50) return;
-
-        const discovered = discoveredRef.current.has(b.community.id);
-        drawSportBuilding(bx, by, bw, bh, b.community.sport, b.province.palette.accent, discovered);
-
-        // Building name
-        ctx.fillStyle = discovered ? '#00ff88' : 'rgba(255,255,255,0.85)';
-        ctx.font = 'bold 7px "Courier New"';
-        ctx.textAlign = 'center';
-        ctx.fillText(b.community.name, bx + bw/2, by - 8);
-
-        // Province badge
-        ctx.fillStyle = b.province.palette.accent;
-        ctx.fillRect(bx + bw - 20, by - 4, 18, 10);
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 5px "Courier New"';
-        ctx.fillText(b.province.name.slice(0, 3).toUpperCase(), bx + bw - 11, by + 3);
-      });
-    };
-
-    // Collision check with padding to prevent edge-sticking
-    const collidesWithBuilding = (nx: number, ny: number): boolean => {
-      const pad = 6; // pixels of padding
-      
-      // Stadium collision with padding
-      const sx1 = STADIUM.x * TILE + pad;
-      const sy1 = STADIUM.y * TILE + pad;
-      const sx2 = (STADIUM.x + STADIUM.w) * TILE - pad;
-      const sy2 = (STADIUM.y + STADIUM.h) * TILE - pad;
-      if (nx > sx1 && nx < sx2 && ny > sy1 && ny < sy2) return true;
-
-      // Buildings collision with padding
-      for (const b of buildingsRef.current) {
-        const bx1 = b.x * TILE + pad;
-        const by1 = b.y * TILE + pad;
-        const bx2 = (b.x + b.w) * TILE - pad;
-        const by2 = (b.y + b.h) * TILE - pad;
-        if (nx > bx1 && nx < bx2 && ny > by1 && ny < by2) return true;
-      }
-      return false;
-    };
-
-    // Check zone proximity
-    const checkZoneProximity = () => {
-      const player = playerRef.current;
-      const px = player.x;
-      const py = player.y;
-
-      // Stadium check
-      const sx1 = STADIUM.x * TILE;
-      const sy1 = STADIUM.y * TILE;
-      const sx2 = (STADIUM.x + STADIUM.w) * TILE;
-      const sy2 = (STADIUM.y + STADIUM.h) * TILE;
-      const margin = 20;
-      
-      if (px > sx1 - margin && px < sx2 + margin && py > sy1 - margin && py < sy2 + margin) {
-        // Near stadium - no popup but update province
-        setCurrentCommunity(null);
-        return;
-      }
-
-      // Buildings check
-      for (const b of buildingsRef.current) {
-        const bx1 = b.x * TILE;
-        const by1 = b.y * TILE;
-        const bx2 = (b.x + b.w) * TILE;
-        const by2 = (b.y + b.h) * TILE;
-        
-        if (px > bx1 - margin && px < bx2 + margin && py > by1 - margin && py < by2 + margin) {
-          if (!discoveredRef.current.has(b.community.id)) {
-            discoveredRef.current.add(b.community.id);
-            setDiscoveredCount(discoveredRef.current.size);
-            showToastMessage(`+1 comunidad descubierta!`);
-          }
-          setCurrentCommunity(b.community);
-          setCurrentProvince(b.province);
-          return;
-        }
-      }
-      
-      setCurrentCommunity(null);
-    };
-
-    // Update with wall sliding
-    const update = () => {
+    // Game loop
+    let animId: number;
+    let lastDiscoveredCount = discoveredRef.current.size;
+    
+    const gameLoop = () => {
       const player = playerRef.current;
       const cam = camRef.current;
       const keys = keysRef.current;
       const joy = joyRef.current;
+      const buildings = buildingsRef.current;
       const fade = fadeRef.current;
 
-      // Handle fade transition
+      // Fade transition
       if (fade.active) {
         if (fade.phase === 'out') {
-          fade.alpha += 0.05;
+          fade.alpha += 0.08;
           if (fade.alpha >= 1) {
             fade.alpha = 1;
             player.x = fade.targetX;
             player.y = fade.targetY;
-            cam.x = player.x - canvas.width / 2;
-            cam.y = player.y - canvas.height / 2;
             fade.phase = 'in';
           }
         } else if (fade.phase === 'in') {
-          fade.alpha -= 0.05;
+          fade.alpha -= 0.08;
           if (fade.alpha <= 0) {
             fade.alpha = 0;
             fade.active = false;
             fade.phase = 'none';
           }
         }
-        return;
       }
 
+      // Movement
       let dx = 0, dy = 0;
-
-      if (keys['ArrowLeft'] || keys['a']) dx -= 1;
-      if (keys['ArrowRight'] || keys['d']) dx += 1;
-      if (keys['ArrowUp'] || keys['w']) dy -= 1;
-      if (keys['ArrowDown'] || keys['s']) dy += 1;
+      if (keys['ArrowUp'] || keys['w'] || keys['W']) dy = -1;
+      if (keys['ArrowDown'] || keys['s'] || keys['S']) dy = 1;
+      if (keys['ArrowLeft'] || keys['a'] || keys['A']) dx = -1;
+      if (keys['ArrowRight'] || keys['d'] || keys['D']) dx = 1;
 
       if (joy.active) {
         dx = joy.dx;
         dy = joy.dy;
       }
 
-      const len = Math.sqrt(dx * dx + dy * dy);
-      if (len > 0) {
-        dx /= Math.max(len, 1);
-        dy /= Math.max(len, 1);
+      if (dx !== 0 && dy !== 0) {
+        const len = Math.sqrt(dx * dx + dy * dy);
+        dx /= len;
+        dy /= len;
       }
 
-      const spd = player.speed;
-      
-      // Slide along walls - check X and Y independently
-      const newX = player.x + dx * spd;
-      const newY = player.y + dy * spd;
+      const newX = player.x + dx * player.speed;
+      const newY = player.y + dy * player.speed;
 
-      if (!collidesWithBuilding(newX, player.y) && newX > 16 && newX < WORLD_PX - 16) {
-        player.x = newX;
-      }
-      if (!collidesWithBuilding(player.x, newY) && newY > 16 && newY < WORLD_PY - 16) {
-        player.y = newY;
-      }
+      // Collision check
+      const checkCollision = (px: number, py: number): boolean => {
+        const pad = 4;
+        for (const b of buildings) {
+          const bx = b.x * TILE;
+          const by = b.y * TILE;
+          const bw = b.w * TILE;
+          const bh = b.h * TILE;
+          if (px + player.w > bx + pad && px < bx + bw - pad &&
+              py + player.h > by + pad && py < by + bh - pad) {
+            return true;
+          }
+        }
+        const sx = STADIUM.x * TILE;
+        const sy = STADIUM.y * TILE;
+        const sw = STADIUM.w * TILE;
+        const sh = STADIUM.h * TILE;
+        if (px + player.w > sx && px < sx + sw &&
+            py + player.h > sy && py < sy + sh) {
+          return true;
+        }
+        return false;
+      };
 
-      player.moving = len > 0.1;
+      if (!checkCollision(newX, player.y)) player.x = newX;
+      if (!checkCollision(player.x, newY)) player.y = newY;
 
+      player.x = Math.max(0, Math.min(WORLD_PX - player.w, player.x));
+      player.y = Math.max(0, Math.min(WORLD_PY - player.h, player.y));
+
+      player.moving = dx !== 0 || dy !== 0;
       if (player.moving) {
-        if (Math.abs(dx) > Math.abs(dy)) player.dir = dx > 0 ? 'right' : 'left';
-        else player.dir = dy > 0 ? 'down' : 'up';
-
+        if (Math.abs(dx) > Math.abs(dy)) {
+          player.dir = dx > 0 ? 'right' : 'left';
+        } else {
+          player.dir = dy > 0 ? 'down' : 'up';
+        }
         player.frameTimer++;
         if (player.frameTimer >= player.frameDelay) {
-          player.frame = (player.frame + 1) % 4;
           player.frameTimer = 0;
+          player.frame = (player.frame + 1) % 4;
         }
-      } else {
-        player.frame = 0;
       }
 
-      // Camera
-      const targetCX = player.x - canvas.width / 2;
-      const targetCY = player.y - canvas.height / 2;
-      cam.x += (targetCX - cam.x) * 0.12;
-      cam.y += (targetCY - cam.y) * 0.12;
+      cam.x = player.x - canvas.width / 2 + player.w / 2;
+      cam.y = player.y - canvas.height / 2 + player.h / 2;
       cam.x = Math.max(0, Math.min(WORLD_PX - canvas.width, cam.x));
       cam.y = Math.max(0, Math.min(WORLD_PY - canvas.height, cam.y));
 
-      // Province update
-      const prov = getProvinceAt(player.x, player.y);
-      if (prov !== currentProvince) {
-        setCurrentProvince(prov);
+      const reg = getRegionAt(player.x, player.y);
+      if (reg !== currentRegion) {
+        setCurrentRegion(reg);
+        if (reg) {
+          addLog('info', `Entraste a ${reg.name}`);
+        }
       }
 
-      checkZoneProximity();
-    };
+      // Check building proximity
+      let nearCommunity: Community | null = null;
+      for (const b of buildings) {
+        const bx = b.x * TILE;
+        const by = b.y * TILE;
+        const bw = b.w * TILE;
+        const bh = b.h * TILE;
+        const dist = 20;
+        if (player.x + player.w > bx - dist && player.x < bx + bw + dist &&
+            player.y + player.h > by - dist && player.y < by + bh + dist) {
+          nearCommunity = b.community;
+          
+          if (!discoveredRef.current.has(b.community.id)) {
+            discoveredRef.current.add(b.community.id);
+            setDiscoveredCount(discoveredRef.current.size);
+            addLog('discovery', `Descubriste ${b.community.name}!`, b.community.whatsapp, b.community);
+          }
+          break;
+        }
+      }
+      // Si estamos cerca de una comunidad descubierta, mostrarla como accion pendiente en terminal
+  if (nearCommunity && discoveredRef.current.has(nearCommunity.id)) {
+    const comm = nearCommunity; // Capturar en variable local
+    const nearRegion = REGIONS.find(r => r.communities.some(c => c.id === comm.id));
+    if (nearRegion) {
+      setPendingAction({ community: comm, region: nearRegion });
+    }
+  } else {
+    setPendingAction(null);
+  }
 
-    // Draw
-    const draw = () => {
-      const player = playerRef.current;
-      const cam = camRef.current;
-      const fade = fadeRef.current;
+      // Clear
+      ctx.fillStyle = '#1a2a1a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawWorld(Math.floor(cam.x), Math.floor(cam.y));
+      // Draw tiles
+      const startTX = Math.floor(cam.x / TILE);
+      const startTY = Math.floor(cam.y / TILE);
+      const endTX = Math.ceil((cam.x + canvas.width) / TILE);
+      const endTY = Math.ceil((cam.y + canvas.height) / TILE);
 
-      const screenX = player.x - cam.x;
-      const screenY = player.y - cam.y;
-      drawPlayer(screenX, screenY);
+      for (let ty = startTY; ty <= endTY; ty++) {
+        for (let tx = startTX; tx <= endTX; tx++) {
+          if (tx < 0 || ty < 0 || tx >= WORLD_W || ty >= WORLD_H) continue;
+          const wx = tx * TILE - cam.x;
+          const wy = ty * TILE - cam.y;
+          const tileRegion = getRegionAt(tx * TILE, ty * TILE);
+          drawThemedTile(tx, ty, wx, wy, tileRegion);
+        }
+      }
+
+      // Draw main roads
+      ctx.fillStyle = '#4a4a4a';
+      const roadW = 3 * TILE;
+      ctx.fillRect(-cam.x, (WORLD_H / 2 - 1.5) * TILE - cam.y, WORLD_PX, roadW);
+      ctx.fillRect((WORLD_W / 2 - 1.5) * TILE - cam.x, -cam.y, roadW, WORLD_PY);
+
+      ctx.fillStyle = '#ffff00';
+      for (let i = 0; i < WORLD_W; i += 4) {
+        ctx.fillRect(i * TILE - cam.x, WORLD_H / 2 * TILE - cam.y - 2, TILE * 2, 4);
+      }
+      for (let i = 0; i < WORLD_H; i += 4) {
+        ctx.fillRect(WORLD_W / 2 * TILE - cam.x - 2, i * TILE - cam.y, 4, TILE * 2);
+      }
+
+      // Draw stadium
+      const stadX = STADIUM.x * TILE - cam.x;
+      const stadY = STADIUM.y * TILE - cam.y;
+      const stadW = STADIUM.w * TILE;
+      const stadH = STADIUM.h * TILE;
+      
+      ctx.fillStyle = '#00564B';
+      ctx.beginPath();
+      ctx.ellipse(stadX + stadW/2, stadY + stadH/2, stadW/2, stadH/2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#09D85D';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('ATC', stadX + stadW/2, stadY + stadH/2 - 4);
+      ctx.font = '10px sans-serif';
+      ctx.fillText('CAMPUS', stadX + stadW/2, stadY + stadH/2 + 10);
+
+      // Draw buildings
+      for (const b of buildings) {
+        const bx = b.x * TILE - cam.x;
+        const by = b.y * TILE - cam.y;
+        const bw = b.w * TILE;
+        const bh = b.h * TILE;
+        
+        if (bx > canvas.width || by > canvas.height || bx + bw < 0 || by + bh < 0) continue;
+        
+        const discovered = discoveredRef.current.has(b.community.id);
+        
+        if (b.isPlaza) {
+          drawPlaza(bx, by, bw, bh, b.region.palette.accent, discovered, b.community.name);
+        } else {
+          drawClubBuilding(bx, by, bw, bh, b.community.sport, b.region.palette.accent, discovered);
+        }
+        
+        // Name label
+        ctx.fillStyle = b.isPlaza ? 'rgba(0,86,75,0.9)' : 'rgba(0,0,0,0.7)';
+        const labelText = b.community.name.length > 18 ? b.community.name.substring(0, 16) + '...' : b.community.name;
+        const textWidth = ctx.measureText(labelText).width + 16;
+        ctx.fillRect(bx + bw/2 - textWidth/2, by - 18, textWidth, 16);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = b.isPlaza ? 'bold 10px sans-serif' : '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(labelText, bx + bw/2, by - 6);
+      }
+
+      // Draw player
+      const px = player.x - cam.x;
+      const py = player.y - cam.y;
+      drawPlayer(px, py);
 
       // Fade overlay
-      if (fade.active && fade.alpha > 0) {
-        ctx.fillStyle = `rgba(10,10,10,${fade.alpha})`;
+      if (fade.active) {
+        ctx.fillStyle = `rgba(0,0,0,${fade.alpha})`;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
+
+      animId = requestAnimationFrame(gameLoop);
     };
 
-    // Game loop
-    let animationId: number;
-    const loop = () => {
-      update();
-      draw();
-      animationId = requestAnimationFrame(loop);
-    };
-    animationId = requestAnimationFrame(loop);
+    gameLoop();
 
     return () => {
-      cancelAnimationFrame(animationId);
+      cancelAnimationFrame(animId);
       window.removeEventListener('resize', resize);
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [getProvinceAt, currentProvince, showToastMessage]);
+  }, [currentRegion, getRegionAt, addLog]);
 
-  // Calculate total communities
-  const totalCommunities = PROVINCES.reduce((acc, p) => acc + p.communities.length, 0);
+  // Joystick handlers
+  const handleJoyStart = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+    e.preventDefault();
+    joyRef.current.active = true;
+  }, []);
+
+  const handleJoyMove = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+    if (!joyRef.current.active) return;
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    let clientX: number, clientY: number;
+    if ('touches' in e) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    
+    const dx = (clientX - centerX) / (rect.width / 2);
+    const dy = (clientY - centerY) / (rect.height / 2);
+    const len = Math.sqrt(dx * dx + dy * dy);
+    
+    if (len > 0.2) {
+      joyRef.current.dx = Math.max(-1, Math.min(1, dx));
+      joyRef.current.dy = Math.max(-1, Math.min(1, dy));
+    } else {
+      joyRef.current.dx = 0;
+      joyRef.current.dy = 0;
+    }
+  }, []);
+
+  const handleJoyEnd = useCallback(() => {
+    joyRef.current.active = false;
+    joyRef.current.dx = 0;
+    joyRef.current.dy = 0;
+  }, []);
 
   return (
-    <div className="fixed inset-0 bg-[#0a0a0a] overflow-hidden font-sans touch-none select-none">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-2 bg-black/85 border-b-2 border-[#00564B]">
-        <h1 className="text-[#09D85D] text-sm tracking-widest uppercase font-bold flex items-center gap-2">
-          <span className="text-lg">⬡</span> ATC Campus
-        </h1>
-        <div className="flex items-center gap-3">
-          {currentProvince && (
-            <span 
-              className="text-xs px-2 py-1 rounded transition-all duration-300"
-              style={{ backgroundColor: currentProvince.palette.accent + '33', color: currentProvince.palette.accent, border: `1px solid ${currentProvince.palette.accent}` }}
+    <div className="fixed inset-0 bg-[#1a2a1a] overflow-hidden">
+      <canvas ref={canvasRef} className="w-full h-full" />
+      
+      {/* Header UI */}
+      <div className="fixed top-0 left-0 right-0 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/70 to-transparent pointer-events-none">
+        <div className="flex items-center gap-3 pointer-events-auto">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#00564B] rounded-full">
+            <div className="w-2 h-2 bg-[#09D85D] rounded-full animate-pulse" />
+            <span className="text-white text-sm font-bold">ATC CAMPUS</span>
+          </div>
+          {currentRegion && (
+            <div 
+              className="px-3 py-1.5 rounded-full text-xs font-medium text-white"
+              style={{ backgroundColor: currentRegion.palette.accent }}
             >
-              {currentProvince.name}
-            </span>
+              {currentRegion.name}
+            </div>
           )}
-          <span className="text-[#09D85D] text-xs bg-[#09D85D20] border border-[#09D85D] px-3 py-1 rounded">
-            {discoveredCount}/{totalCommunities} explorado
-          </span>
-          <button
+        </div>
+        <div className="flex items-center gap-2 pointer-events-auto">
+          <div className="px-3 py-1.5 bg-black/50 rounded-full text-white text-sm">
+  {discoveredCount}/{TOTAL_COMMUNITIES}
+  </div>
+  <button
             onClick={() => setShowMap(true)}
-            className="text-[#09D85D] text-xs bg-[#09D85D20] border border-[#09D85D] px-3 py-1 rounded hover:bg-[#09D85D40] transition-colors"
+            className="px-4 py-1.5 bg-[#00564B] hover:bg-[#00463B] text-white text-sm font-medium rounded-full transition-colors"
           >
             MAPA
           </button>
         </div>
-      </header>
-
-      {/* Canvas */}
-      <canvas ref={canvasRef} className="block w-full h-full" style={{ imageRendering: 'pixelated' }} />
-
-      {/* Community Popup */}
-      {currentCommunity && currentProvince && (
-        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 bg-[#0a0a0aee] border-2 border-[#09D85D] rounded-lg p-4 min-w-[240px] text-center animate-in slide-in-from-bottom-4 duration-300">
-          <span 
-            className="inline-block text-xs px-2 py-0.5 rounded mb-2"
-            style={{ backgroundColor: currentProvince.palette.accent, color: '#fff' }}
-          >
-            {currentProvince.name}
-          </span>
-          <h3 className="text-[#09D85D] text-sm font-bold tracking-wide mb-1">
-            {SPORT_EMOJI[currentCommunity.sport]} {currentCommunity.name}
-          </h3>
-          <p className="text-[#aaa] text-xs mb-3">{currentCommunity.members} jugadores activos</p>
-          <a
-            href={currentCommunity.whatsapp}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block bg-[#09D85D] text-black font-bold text-xs px-4 py-2 rounded tracking-wide hover:bg-[#07c050] transition-colors"
-          >
-            UNIRSE AL GRUPO
-          </a>
-        </div>
-      )}
-
-      {/* Toast */}
-      {showToast && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-[#09D85D] text-black font-bold text-sm px-4 py-2 rounded animate-in fade-in slide-in-from-top-2 duration-200">
-          {toastMessage}
-        </div>
-      )}
+      </div>
 
       {/* Hint */}
       {showHint && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 text-[#aaa] text-xs text-center animate-in fade-in duration-500">
-          Usa el joystick para moverte - Acercate a un club para descubrirlo - Presiona M para el mapa
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/80 rounded-lg text-white text-sm animate-pulse">
+          WASD para moverte | M mapa | T terminal
         </div>
       )}
 
-      {/* Joystick */}
-      <JoystickControl onMove={(dx, dy) => {
-        joyRef.current.active = dx !== 0 || dy !== 0;
-        joyRef.current.dx = dx;
-        joyRef.current.dy = dy;
-      }} />
-
-      {/* Interact button */}
-      <button
-        onClick={() => {
-          if (currentCommunity) {
-            window.open(currentCommunity.whatsapp, '_blank');
-          }
-        }}
-        className="fixed bottom-11 right-8 w-14 h-14 rounded-full bg-[#09D85D26] border-2 border-[#09D85D] text-[#09D85D] font-bold text-lg z-50 active:scale-95 transition-transform"
-      >
-        A
-      </button>
-
-      {/* Fast Travel Map - IMPROVED DESIGN */}
-{showMap && (
-  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-    {/* Solid dark overlay */}
-    <div 
-      className="absolute inset-0 bg-[#0a0f0a]" 
-      onClick={() => setShowMap(false)} 
-    />
+      {/* Terminal */}
+  <div className={`fixed transition-all duration-300 ${
+    terminalMode === 'full' 
+      ? 'inset-4 md:inset-8' 
+      : terminalMode === 'mini'
+        ? 'bottom-0 left-4 right-4 md:left-auto md:right-4 md:w-72'
+        : 'bottom-0 left-4 right-4 md:left-auto md:right-4 md:w-80'
+  } bg-[#0a0f0a] border border-[#1a2a1a] ${terminalMode === 'full' ? 'rounded-lg' : 'rounded-t-lg'} overflow-hidden shadow-2xl z-50 flex flex-col`}>
     
-    {/* Map container */}
-    <div className="relative z-10 w-full max-w-md bg-[#0d1210] border-2 border-[#00564B] rounded-xl shadow-2xl overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 bg-[#00564B]">
-        <div>
-          <h2 className="text-white text-base font-bold tracking-wide">
-            ARGENTINA
-          </h2>
-          <p className="text-[#88ccaa] text-xs">Selecciona tu destino</p>
-        </div>
+    {/* Header */}
+    <div className="flex items-center justify-between px-3 py-1.5 bg-[#00564B] shrink-0">
+      <div className="flex items-center gap-2">
+        <div className={`w-1.5 h-1.5 rounded-full ${pendingAction ? 'bg-[#ff9800] animate-pulse' : 'bg-[#09D85D]'}`} />
+        <span className="text-white text-[10px] font-bold font-mono">TERMINAL</span>
+        {terminalMode === 'mini' && terminalLogs.length > 0 && (
+          <span className="text-white/60 text-[10px] truncate max-w-[120px]">
+            {terminalLogs[terminalLogs.length - 1]?.message.substring(0, 25)}...
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-1">
+        {/* Minimizar */}
         <button
-          onClick={() => setShowMap(false)}
-          className="w-8 h-8 flex items-center justify-center rounded-full bg-[#004038] text-white hover:bg-[#003530] transition-colors"
+          onClick={() => setTerminalMode(terminalMode === 'mini' ? 'normal' : 'mini')}
+          className="p-1 text-white/60 hover:text-white transition-colors"
+          title={terminalMode === 'mini' ? 'Expandir' : 'Minimizar'}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={terminalMode === 'mini' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
+          </svg>
+        </button>
+        {/* Fullscreen */}
+        <button
+          onClick={() => setTerminalMode(terminalMode === 'full' ? 'normal' : 'full')}
+          className="p-1 text-white/60 hover:text-white transition-colors"
+          title={terminalMode === 'full' ? 'Salir de pantalla completa' : 'Pantalla completa'}
+        >
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {terminalMode === 'full' ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            )}
           </svg>
         </button>
       </div>
-      
-      {/* Map grid area */}
-      <div className="p-5 bg-[#0d1210]">
-        {/* Province grid - organized by region */}
-        <div className="grid gap-2">
-          {/* Norte */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="text-[#666] text-[10px] uppercase tracking-wider col-span-2 mb-1">Norte</div>
-            {PROVINCES.filter(p => ['noa', 'noreste'].includes(p.id)).map((province) => {
-              const discoveredInProvince = province.communities.filter(c => discoveredRef.current.has(c.id)).length;
-              const allDiscovered = discoveredInProvince === province.communities.length;
-              return (
-                <button
-                  key={province.id}
-                  onClick={() => handleFastTravel(province)}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-150 hover:scale-[1.02]"
-                  style={{
-                    backgroundColor: '#141a18',
-                    border: `2px solid ${allDiscovered ? '#09D85D' : province.palette.accent}40`,
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: province.palette.accent }}
-                    />
-                    <span className="text-white text-sm font-medium">{province.name}</span>
-                  </div>
-                  <span className={`text-xs ${allDiscovered ? 'text-[#09D85D]' : 'text-[#666]'}`}>
-                    {discoveredInProvince}/{province.communities.length}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Centro */}
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <div className="text-[#666] text-[10px] uppercase tracking-wider col-span-2 mb-1">Centro</div>
-            {PROVINCES.filter(p => ['cordoba', 'litoral', 'pampas', 'caba'].includes(p.id)).map((province) => {
-              const discoveredInProvince = province.communities.filter(c => discoveredRef.current.has(c.id)).length;
-              const allDiscovered = discoveredInProvince === province.communities.length;
-              return (
-                <button
-                  key={province.id}
-                  onClick={() => handleFastTravel(province)}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-150 hover:scale-[1.02]"
-                  style={{
-                    backgroundColor: '#141a18',
-                    border: `2px solid ${allDiscovered ? '#09D85D' : province.palette.accent}40`,
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: province.palette.accent }}
-                    />
-                    <span className="text-white text-sm font-medium">{province.name}</span>
-                  </div>
-                  <span className={`text-xs ${allDiscovered ? 'text-[#09D85D]' : 'text-[#666]'}`}>
-                    {discoveredInProvince}/{province.communities.length}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Cuyo y Oeste */}
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <div className="text-[#666] text-[10px] uppercase tracking-wider col-span-2 mb-1">Oeste</div>
-            {PROVINCES.filter(p => ['mendoza', 'cuyo'].includes(p.id)).map((province) => {
-              const discoveredInProvince = province.communities.filter(c => discoveredRef.current.has(c.id)).length;
-              const allDiscovered = discoveredInProvince === province.communities.length;
-              return (
-                <button
-                  key={province.id}
-                  onClick={() => handleFastTravel(province)}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-150 hover:scale-[1.02]"
-                  style={{
-                    backgroundColor: '#141a18',
-                    border: `2px solid ${allDiscovered ? '#09D85D' : province.palette.accent}40`,
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: province.palette.accent }}
-                    />
-                    <span className="text-white text-sm font-medium">{province.name}</span>
-                  </div>
-                  <span className={`text-xs ${allDiscovered ? 'text-[#09D85D]' : 'text-[#666]'}`}>
-                    {discoveredInProvince}/{province.communities.length}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Sur */}
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <div className="text-[#666] text-[10px] uppercase tracking-wider col-span-2 mb-1">Sur</div>
-            {PROVINCES.filter(p => ['neuquen', 'patagonia'].includes(p.id)).map((province) => {
-              const discoveredInProvince = province.communities.filter(c => discoveredRef.current.has(c.id)).length;
-              const allDiscovered = discoveredInProvince === province.communities.length;
-              return (
-                <button
-                  key={province.id}
-                  onClick={() => handleFastTravel(province)}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-150 hover:scale-[1.02]"
-                  style={{
-                    backgroundColor: '#141a18',
-                    border: `2px solid ${allDiscovered ? '#09D85D' : province.palette.accent}40`,
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: province.palette.accent }}
-                    />
-                    <span className="text-white text-sm font-medium">{province.name}</span>
-                  </div>
-                  <span className={`text-xs ${allDiscovered ? 'text-[#09D85D]' : 'text-[#666]'}`}>
-                    {discoveredInProvince}/{province.communities.length}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Progress summary */}
-        <div className="mt-4 pt-4 border-t border-[#222]">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-[#888]">Comunidades descubiertas</span>
-            <span className="text-[#09D85D] font-bold">{discoveredCount}/30</span>
-          </div>
-        </div>
-      </div>
-      
-      {/* Footer */}
-      <div className="px-5 py-3 bg-[#0a0f0a] border-t border-[#1a1a1a] flex items-center justify-center gap-4">
-        <span className="text-[#555] text-xs">Presiona</span>
-        <kbd className="px-2 py-1 bg-[#1a1a1a] text-[#888] text-xs rounded border border-[#333]">M</kbd>
-        <span className="text-[#555] text-xs">para cerrar</span>
-      </div>
     </div>
+    
+    {/* Content - visible si no esta minimizado */}
+    {terminalMode !== 'mini' && (
+      <>
+        {/* Logs */}
+        <div
+          ref={terminalRef}
+          className={`overflow-y-auto p-2 font-mono text-[10px] space-y-1 ${terminalMode === 'full' ? 'flex-1' : 'h-16'}`}
+        >
+          {(terminalMode === 'full' ? terminalLogs : terminalLogs.slice(-3)).map((log) => (
+            <div key={log.id} className="flex items-start gap-1.5">
+              <span className="text-[#555] shrink-0 text-[9px]">
+                {log.timestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <span className={`flex-1 ${
+                log.type === 'discovery' ? 'text-[#09D85D]' :
+                log.type === 'travel' ? 'text-[#00bcd4]' :
+                log.type === 'info' ? 'text-[#777]' :
+                'text-[#ff9800]'
+              }`}>
+                {log.message}
+              </span>
+            </div>
+          ))}
+        </div>
+        
+        {/* Accion pendiente - comunidad descubierta */}
+        {pendingAction && (
+          <div className="px-2 py-2 bg-[#0d1a0d] border-t border-[#1a2a1a]">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-sm shrink-0">{SPORT_EMOJI[pendingAction.community.sport]}</span>
+                <div className="min-w-0">
+                  <p className="text-[#09D85D] text-[10px] font-bold truncate">{pendingAction.community.name}</p>
+                  <p className="text-[#666] text-[8px]">{pendingAction.community.members} miembros</p>
+                </div>
+              </div>
+              <a
+                href={pendingAction.community.whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 px-3 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-[9px] font-bold rounded transition-colors"
+              >
+                Unirme
+              </a>
+            </div>
+          </div>
+        )}
+        
+        {/* Footer */}
+        <div className="px-2 py-1 bg-[#060a06] border-t border-[#1a2a1a] flex items-center gap-1 shrink-0">
+          <span className="text-[#09D85D] text-[10px]">$</span>
+          <span className="text-[#444] text-[10px] animate-pulse">_</span>
+          <span className="text-[#333] text-[8px] ml-auto">T: ocultar</span>
+        </div>
+      </>
+    )}
   </div>
-)}
-    </div>
-  );
-}
 
-// Joystick Component
-function JoystickControl({ onMove }: { onMove: (dx: number, dy: number) => void }) {
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const baseRef = useRef<HTMLDivElement>(null);
-  const activeRef = useRef(false);
-
-  const handleMove = useCallback((clientX: number, clientY: number) => {
-    if (!baseRef.current || !activeRef.current) return;
-    
-    const rect = baseRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const ox = clientX - centerX;
-    const oy = clientY - centerY;
-    const dist = Math.sqrt(ox * ox + oy * oy);
-    const maxDist = 28;
-    const clamped = Math.min(dist, maxDist);
-    const angle = Math.atan2(oy, ox);
-    
-    const dx = Math.cos(angle) * clamped / maxDist;
-    const dy = Math.sin(angle) * clamped / maxDist;
-    
-    setOffset({ x: Math.cos(angle) * clamped, y: Math.sin(angle) * clamped });
-    onMove(dx, dy);
-  }, [onMove]);
-
-  const handleEnd = useCallback(() => {
-    activeRef.current = false;
-    setOffset({ x: 0, y: 0 });
-    onMove(0, 0);
-  }, [onMove]);
-
-  return (
-    <div
-      ref={baseRef}
-      className="fixed bottom-8 left-8 z-50 w-[90px] h-[90px] rounded-full bg-[#09D85D15] border-2 border-[#09D85D50] flex items-center justify-center"
-      onTouchStart={(e) => {
-        e.preventDefault();
-        activeRef.current = true;
-        handleMove(e.touches[0].clientX, e.touches[0].clientY);
-      }}
-      onTouchMove={(e) => {
-        e.preventDefault();
-        handleMove(e.touches[0].clientX, e.touches[0].clientY);
-      }}
-      onTouchEnd={(e) => {
-        e.preventDefault();
-        handleEnd();
-      }}
-      onTouchCancel={(e) => {
-        e.preventDefault();
-        handleEnd();
-      }}
-    >
+      {/* Joystick (mobile) */}
       <div
-        className="w-9 h-9 rounded-full bg-[#09D85D99] border-2 border-[#09D85D]"
-        style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
-      />
+        className="fixed bottom-8 right-8 w-28 h-28 rounded-full bg-black/40 border-2 border-white/30 md:hidden touch-none"
+        onTouchStart={handleJoyStart}
+        onTouchMove={handleJoyMove}
+        onTouchEnd={handleJoyEnd}
+        onMouseDown={handleJoyStart}
+        onMouseMove={handleJoyMove}
+        onMouseUp={handleJoyEnd}
+        onMouseLeave={handleJoyEnd}
+      >
+        <div 
+          className="absolute top-1/2 left-1/2 w-12 h-12 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/50"
+          style={{
+            transform: `translate(calc(-50% + ${joyRef.current.dx * 20}px), calc(-50% + ${joyRef.current.dy * 20}px))`
+          }}
+        />
+      </div>
+
+      {/* Map Modal */}
+      {showMap && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-[#0a0f0a]" 
+            onClick={() => { setShowMap(false); setSearchQuery(''); }} 
+          />
+          
+          <div className="relative z-10 w-full max-w-lg max-h-[90vh] bg-[#0d1210] border-2 border-[#00564B] rounded-xl shadow-2xl overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 bg-[#00564B] shrink-0">
+              <div>
+                <h2 className="text-white text-lg font-bold">ARGENTINA</h2>
+                <p className="text-[#88ccaa] text-xs">{discoveredCount}/{TOTAL_COMMUNITIES} comunidades</p>
+              </div>
+              <button
+                onClick={() => { setShowMap(false); setSearchQuery(''); }}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#004038] text-white hover:bg-[#003530] transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex border-b border-[#1a2a1a] shrink-0">
+              <button
+                onClick={() => setMapView('map')}
+                className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                  mapView === 'map' 
+                    ? 'bg-[#1a2a1a] text-[#09D85D] border-b-2 border-[#09D85D]' 
+                    : 'text-[#888] hover:text-white'
+                }`}
+              >
+                Mapa
+              </button>
+              <button
+                onClick={() => setMapView('list')}
+                className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                  mapView === 'list' 
+                    ? 'bg-[#1a2a1a] text-[#09D85D] border-b-2 border-[#09D85D]' 
+                    : 'text-[#888] hover:text-white'
+                }`}
+              >
+                Lista
+              </button>
+            </div>
+
+            {/* Content */}
+            {mapView === 'map' ? (
+              /* Vista Mapa Visual estilo Pokemon */
+              <div className="flex-1 overflow-hidden p-3 bg-[#0a0f0a]">
+                <div className="relative w-full aspect-[3/4] max-h-[60vh] mx-auto rounded-lg overflow-hidden border-4 border-[#2a3a2a]" style={{ background: 'linear-gradient(135deg, #1a3a6a 0%, #2a4a8a 50%, #1a3a6a 100%)' }}>
+                  {/* Water pattern overlay */}
+                  <div className="absolute inset-0 opacity-30" style={{
+                    backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,0.1) 4px, rgba(255,255,255,0.1) 8px)'
+                  }} />
+                  
+                  {/* Argentina landmass shape - simplified */}
+                  <svg viewBox="0 0 100 140" className="absolute inset-0 w-full h-full">
+                    {/* Main landmass */}
+                    <path
+                      d="M30 8 L55 5 L70 10 L75 20 L72 35 L70 50 L68 65 L65 80 L60 95 L55 110 L50 125 L45 135 L42 125 L38 110 L35 95 L32 80 L30 65 L28 50 L30 35 L32 20 Z"
+                      fill="#3a7a3a"
+                      stroke="#2a5a2a"
+                      strokeWidth="1"
+                    />
+                    {/* Lighter grass patches */}
+                    <path d="M35 15 L50 12 L60 18 L55 30 L40 28 Z" fill="#4a9a4a" opacity="0.6" />
+                    <path d="M38 50 L55 48 L58 60 L45 65 Z" fill="#4a9a4a" opacity="0.5" />
+                    <path d="M40 85 L55 82 L52 98 L42 95 Z" fill="#4a9a4a" opacity="0.4" />
+                  </svg>
+                  
+                  {/* Regions as clickable squares */}
+                  {REGIONS.map((region) => {
+                    const discoveredInRegion = region.communities.filter(c => discoveredRef.current.has(c.id)).length;
+                    const allDiscovered = discoveredInRegion === region.communities.length;
+                    const hasDiscovery = discoveredInRegion > 0;
+                    
+                    // Map coordinates based on mapX/mapY (normalized to 0-100 range)
+                    const x = ((region.mapX - 40) / 40) * 70 + 15; // 15-85% range
+                    const y = ((region.mapY - 10) / 60) * 85 + 5;  // 5-90% range
+                    
+                    return (
+                      <button
+                        key={region.id}
+                        onClick={() => handleFastTravel(region)}
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-150 hover:scale-125 hover:z-10"
+                        style={{
+                          left: `${x}%`,
+                          top: `${y}%`,
+                        }}
+                        title={`${region.name} (${discoveredInRegion}/${region.communities.length})`}
+                      >
+                        {/* Building icon */}
+                        <div 
+                          className={`w-5 h-5 md:w-6 md:h-6 rounded-sm border-2 ${
+                            allDiscovered 
+                              ? 'border-[#09D85D] bg-[#09D85D]' 
+                              : hasDiscovery 
+                                ? 'border-[#ff9800] bg-[#8a4a00]'
+                                : 'border-[#5a3a1a] bg-[#3a2a1a]'
+                          }`}
+                          style={{ boxShadow: '2px 2px 0 rgba(0,0,0,0.5)' }}
+                        >
+                          {/* Inner square detail */}
+                          <div className={`w-full h-full flex items-center justify-center ${
+                            allDiscovered ? 'bg-[#006607]' : hasDiscovery ? 'bg-[#5a3000]' : 'bg-[#2a1a0a]'
+                          }`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${
+                              allDiscovered ? 'bg-[#09D85D]' : hasDiscovery ? 'bg-[#ff9800]' : 'bg-[#4a3a2a]'
+                            }`} />
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                  
+                  {/* Hub central marker */}
+                  <div 
+                    className="absolute transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 md:w-8 md:h-8"
+                    style={{ left: '50%', top: '55%' }}
+                  >
+                    <div className="w-full h-full rounded-full bg-[#00564B] border-2 border-[#09D85D] flex items-center justify-center animate-pulse">
+                      <span className="text-[6px] md:text-[8px] font-bold text-[#09D85D]">ATC</span>
+                    </div>
+                  </div>
+                  
+                  {/* Legend */}
+                  <div className="absolute bottom-2 left-2 bg-[#0a0f0a]/90 rounded px-2 py-1 text-[8px] space-y-0.5">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-[#09D85D] rounded-sm" />
+                      <span className="text-[#888]">Completa</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-[#ff9800] rounded-sm" />
+                      <span className="text-[#888]">En progreso</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-[#3a2a1a] border border-[#5a3a1a] rounded-sm" />
+                      <span className="text-[#888]">Sin explorar</span>
+                    </div>
+                  </div>
+                  
+                  {/* Region name on hover - shown at top */}
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-[#0a0f0a]/90 rounded px-3 py-1">
+                    <span className="text-[#09D85D] text-xs font-bold">Toca una ciudad para viajar</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Vista Lista */
+              <>
+                <div className="px-4 py-3 bg-[#0d1210] border-b border-[#1a2a1a] shrink-0">
+                  <input
+                    type="text"
+                    placeholder="Buscar region o comunidad..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full px-4 py-2 bg-[#1a2a1a] border border-[#2a3a2a] rounded-lg text-white text-sm placeholder-[#666] focus:outline-none focus:border-[#00564B]"
+                  />
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                  {filteredRegions.length === 0 ? (
+                    <p className="text-center text-[#666] py-8">No se encontraron resultados</p>
+                  ) : (
+                    filteredRegions.map((region) => {
+                      const discoveredInRegion = region.communities.filter(c => discoveredRef.current.has(c.id)).length;
+                      const allDiscovered = discoveredInRegion === region.communities.length;
+                      
+                      return (
+                        <button
+                          key={region.id}
+                          onClick={() => handleFastTravel(region)}
+                          className="w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-150 hover:scale-[1.01]"
+                          style={{
+                            backgroundColor: '#141a18',
+                            border: `2px solid ${allDiscovered ? '#09D85D' : region.palette.accent}40`,
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: region.palette.accent }}
+                            />
+                            <div className="text-left">
+                              <span className="text-white font-medium">{region.name}</span>
+                              <p className="text-[#666] text-xs">{region.communities.length} comunidades</p>
+                            </div>
+                          </div>
+                          <span className={`text-sm font-bold ${allDiscovered ? 'text-[#09D85D]' : 'text-[#888]'}`}>
+                            {discoveredInRegion}/{region.communities.length}
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </>
+            )}
+            
+            {/* Footer */}
+            <div className="px-5 py-3 bg-[#0a0f0a] border-t border-[#1a1a1a] flex items-center justify-center gap-4 shrink-0">
+              <kbd className="px-2 py-1 bg-[#1a1a1a] text-[#888] text-xs rounded border border-[#333]">M</kbd>
+              <span className="text-[#555] text-xs">para cerrar</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
