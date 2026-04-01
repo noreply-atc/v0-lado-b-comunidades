@@ -446,7 +446,7 @@ export default function GamePage() {
       { id: 1, type: 'info', message: 'Explora las comunidades de Argentina', timestamp: new Date() },
     ]);
   }, []);
-  const [terminalMode, setTerminalMode] = useState<'mini' | 'normal' | 'full'>('normal'); // mini=minimizado, normal=3 lineas, full=pantalla completa
+  const [terminalMode, setTerminalMode] = useState<'open' | 'mini'>('open'); // open=logs visibles, mini=solo barra
   const [pendingAction, setPendingAction] = useState<{ community: Community; region: Region } | null>(null); // Comunidad esperando accion
   const [joyPos, setJoyPos] = useState({ x: 0, y: 0 }); // Posicion visual del joystick
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -543,13 +543,6 @@ const handleFastTravel = useCallback((region: Region) => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Terminal minimizada en mobile
-  useEffect(() => {
-    if (window.innerWidth < 768) {
-      setTerminalMode('mini');
-    }
-  }, []);
-
   // Main game effect
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -569,7 +562,7 @@ const handleFastTravel = useCallback((region: Region) => {
     const handleKeyDown = (e: KeyboardEvent) => {
       keysRef.current[e.key] = true;
       if (e.key === 'm' || e.key === 'M') setShowMap(prev => !prev);
-      if (e.key === 't' || e.key === 'T') setTerminalMode(prev => prev === 'mini' ? 'normal' : 'mini');
+      if (e.key === 't' || e.key === 'T') setTerminalMode(prev => prev === 'open' ? 'mini' : 'open');
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       keysRef.current[e.key] = false;
@@ -590,44 +583,60 @@ const handleFastTravel = useCallback((region: Region) => {
       bx: number, by: number, bw: number, bh: number,
       accent: string, discovered: boolean, name: string
     ) => {
-      // Fondo de plaza - cesped
-      ctx.fillStyle = '#3a7a3a';
+      // Piso de plaza (baldosas)
+      ctx.fillStyle = '#3d3d4a';
       ctx.fillRect(bx, by, bw, bh);
-      
-      // Bordes decorativos
-      ctx.fillStyle = '#5a5a5a';
-      ctx.fillRect(bx, by, bw, 3);
-      ctx.fillRect(bx, by + bh - 3, bw, 3);
-      ctx.fillRect(bx, by, 3, bh);
-      ctx.fillRect(bx + bw - 3, by, 3, bh);
-      
-      // Fuente central
-      ctx.fillStyle = '#6ab4d4';
+
+      // Grilla de baldosas
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 1;
+      for (let gx = bx; gx < bx + bw; gx += 8) {
+        ctx.beginPath(); ctx.moveTo(gx, by); ctx.lineTo(gx, by + bh); ctx.stroke();
+      }
+      for (let gy = by; gy < by + bh; gy += 8) {
+        ctx.beginPath(); ctx.moveTo(bx, gy); ctx.lineTo(bx + bw, gy); ctx.stroke();
+      }
+
+      // Espacio central (cancha multiuso o plaza)
+      const cx = bx + bw/2;
+      const cy = by + bh/2;
+      ctx.fillStyle = '#2e7d32';
+      ctx.fillRect(cx - bw/3, cy - bh/3, bw*2/3, bh*2/3);
+
+      // Circulo central (cancha)
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.arc(bx + bw/2, by + bh/2, bw/4, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Borde de la fuente
-      ctx.strokeStyle = '#888';
-      ctx.lineWidth = 2;
+      ctx.arc(cx, cy, Math.min(bw, bh) / 5, 0, Math.PI * 2);
       ctx.stroke();
-      
-      // Bancos (rectangulos pequenos)
-      ctx.fillStyle = '#8B4513';
-      ctx.fillRect(bx + 8, by + 8, 12, 4);
-      ctx.fillRect(bx + bw - 20, by + 8, 12, 4);
-      ctx.fillRect(bx + 8, by + bh - 12, 12, 4);
-      ctx.fillRect(bx + bw - 20, by + bh - 12, 12, 4);
-      
-      // Faroles
-      ctx.fillStyle = '#333';
-      ctx.fillRect(bx + 6, by + 6, 2, 8);
-      ctx.fillRect(bx + bw - 8, by + 6, 2, 8);
-      ctx.fillStyle = '#ffff88';
-      ctx.fillRect(bx + 5, by + 4, 4, 3);
-      ctx.fillRect(bx + bw - 9, by + 4, 4, 3);
-      
-      // Indicador de descubierto
+
+      // Linea central
+      ctx.beginPath();
+      ctx.moveTo(cx - bw/3 + 3, cy);
+      ctx.lineTo(cx + bw/3 - 3, cy);
+      ctx.stroke();
+
+      // Arboles en esquinas (circulos verdes con sombra)
+      const treePos: [number, number][] = [
+        [bx + 7, by + 7], [bx + bw - 7, by + 7],
+        [bx + 7, by + bh - 7], [bx + bw - 7, by + bh - 7]
+      ];
+      treePos.forEach(([tx, ty]) => {
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.beginPath(); ctx.arc(tx + 2, ty + 2, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#388e3c';
+        ctx.beginPath(); ctx.arc(tx, ty, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#43a047';
+        ctx.beginPath(); ctx.arc(tx - 1, ty - 1, 3, 0, Math.PI * 2); ctx.fill();
+      });
+
+      // Nombre de la region encima
+      ctx.fillStyle = accent;
+      ctx.font = 'bold 8px "Courier New"';
+      ctx.textAlign = 'center';
+      ctx.fillText(name.toUpperCase().substring(0, 8), cx, by + 10);
+
+      // Borde
       if (discovered) {
         ctx.strokeStyle = '#09D85D';
         ctx.lineWidth = 3;
@@ -639,72 +648,147 @@ const handleFastTravel = useCallback((region: Region) => {
       }
     };
 
-    // Draw club building
+    // Draw club building - polideportivo con detalle por deporte
     const drawClubBuilding = (
       bx: number, by: number, bw: number, bh: number,
       sport: SportType, accent: string, discovered: boolean
     ) => {
       // Sombra
-      ctx.fillStyle = 'rgba(0,0,0,0.25)';
-      ctx.fillRect(bx + 4, by + 4, bw, bh);
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillRect(bx + 5, by + 5, bw, bh);
 
-      // Edificio base
-      ctx.fillStyle = '#2c3e50';
+      // Estructura exterior del polideportivo (techo/paredes)
+      ctx.fillStyle = '#2a2a3a';
       ctx.fillRect(bx, by, bw, bh);
 
-      const topH = bh * 0.4;
-      
-      // Cancha segun deporte
+      // Borde de techo con color del acento
+      ctx.fillStyle = accent + '88';
+      ctx.fillRect(bx, by, bw, 4);           // techo norte
+      ctx.fillRect(bx, by + bh - 4, bw, 4);  // techo sur
+      ctx.fillRect(bx, by, 4, bh);           // lateral oeste
+      ctx.fillRect(bx + bw - 4, by, 4, bh);  // lateral este
+
+      // Interior: cancha/instalacion especifica por deporte
+      const innerX = bx + 5;
+      const innerY = by + 5;
+      const innerW = bw - 10;
+      const innerH = bh - 18; // dejar espacio para acceso abajo
+
       switch (sport) {
-        case 'padel':
-          ctx.fillStyle = '#1a5a9a';
-          ctx.fillRect(bx + 2, by + 2, bw - 4, topH);
+        case 'padel': {
+          // Cancha de padel: azul con cristal en los costados
+          ctx.fillStyle = '#1565C0';
+          ctx.fillRect(innerX, innerY, innerW, innerH);
+          // Red central
           ctx.fillStyle = '#ffffff';
-          ctx.fillRect(bx + bw/2 - 1, by + 4, 2, topH - 6);
+          ctx.fillRect(innerX + innerW/2 - 1, innerY + 2, 2, innerH - 4);
+          // Lineas de fondo
+          ctx.strokeStyle = '#4488cc';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(innerX + 3, innerY + 3, innerW - 6, innerH - 6);
+          // Paredes de cristal (costados mas claros)
+          ctx.fillStyle = 'rgba(100,180,255,0.3)';
+          ctx.fillRect(innerX, innerY, 3, innerH);
+          ctx.fillRect(innerX + innerW - 3, innerY, 3, innerH);
           break;
-          
-        case 'football':
-          ctx.fillStyle = '#2d7a35';
-          ctx.fillRect(bx + 2, by + 2, bw - 4, topH);
+        }
+        case 'football': {
+          // Cancha de futbol 5: pasto con lineas
+          ctx.fillStyle = '#1b5e20';
+          ctx.fillRect(innerX, innerY, innerW, innerH);
+          // Lineas de campo
+          ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(innerX + 2, innerY + 2, innerW - 4, innerH - 4);
+          // Circulo central
+          ctx.beginPath();
+          ctx.arc(innerX + innerW/2, innerY + innerH/2, innerH/4, 0, Math.PI * 2);
+          ctx.stroke();
+          // Linea media
+          ctx.beginPath();
+          ctx.moveTo(innerX + innerW/2, innerY + 2);
+          ctx.lineTo(innerX + innerW/2, innerY + innerH - 2);
+          ctx.stroke();
+          // Arcos (porteria)
+          ctx.strokeRect(innerX + 2, innerY + innerH/2 - innerH/6, 5, innerH/3);
+          ctx.strokeRect(innerX + innerW - 7, innerY + innerH/2 - innerH/6, 5, innerH/3);
+          break;
+        }
+        case 'tennis': {
+          // Cancha de tenis: polvo de ladrillo terracota
+          ctx.fillStyle = '#c84b16';
+          ctx.fillRect(innerX, innerY, innerW, innerH);
+          // Lineas
+          ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(innerX + 2, innerY + 2, innerW - 4, innerH - 4);
+          ctx.beginPath();
+          ctx.moveTo(innerX + innerW/2, innerY + 2);
+          ctx.lineTo(innerX + innerW/2, innerY + innerH - 2);
+          ctx.stroke();
+          // Red
           ctx.fillStyle = '#ffffff';
-          ctx.fillRect(bx + 6, by + 4, bw - 12, 1);
-          ctx.fillRect(bx + 6, by + topH - 2, bw - 12, 1);
-          ctx.fillRect(bx + bw/2 - 1, by + 4, 1, topH - 6);
+          ctx.fillRect(innerX + 2, innerY + innerH/2 - 1, innerW - 4, 2);
           break;
-          
-        case 'tennis':
-          ctx.fillStyle = '#c85a2a';
-          ctx.fillRect(bx + 2, by + 2, bw - 4, topH);
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(bx + 4, by + 4, bw - 8, 1);
-          ctx.fillRect(bx + bw/2 - 1, by + 4, 1, topH - 6);
+        }
+        case 'running': {
+          // Pista de atletismo: oval naranja con pasto interior
+          ctx.fillStyle = '#e65100';
+          ctx.fillRect(innerX, innerY, innerW, innerH);
+          ctx.fillStyle = '#2e7d32';
+          ctx.fillRect(innerX + 5, innerY + 4, innerW - 10, innerH - 8);
+          // Lineas de carril
+          ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+          ctx.lineWidth = 1;
+          for (let i = 1; i < 3; i++) {
+            ctx.strokeRect(innerX + i*2, innerY + i*2, innerW - i*4, innerH - i*4);
+          }
           break;
-          
-        default:
-          ctx.fillStyle = accent;
-          ctx.fillRect(bx + 2, by + 2, bw - 4, topH);
+        }
+        case 'cycling': {
+          // Velodromo / pista de ciclismo: oval gris
+          ctx.fillStyle = '#424242';
+          ctx.fillRect(innerX, innerY, innerW, innerH);
+          ctx.fillStyle = '#616161';
+          ctx.beginPath();
+          ctx.ellipse(innerX + innerW/2, innerY + innerH/2, innerW/2 - 4, innerH/2 - 4, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#37474f';
+          ctx.beginPath();
+          ctx.ellipse(innerX + innerW/2, innerY + innerH/2, innerW/2 - 10, innerH/2 - 8, 0, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        }
+        default: {
+          // Generico: interior con color del deporte
+          ctx.fillStyle = accent + 'aa';
+          ctx.fillRect(innerX, innerY, innerW, innerH);
+          ctx.strokeStyle = '#ffffff44';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(innerX + 3, innerY + 3, innerW - 6, innerH - 6);
+        }
       }
 
-      // Parte inferior
-      ctx.fillStyle = '#1a252f';
-      ctx.fillRect(bx, by + topH, bw, bh - topH);
+      // Zona de acceso / entrada (franja inferior)
+      ctx.fillStyle = '#1a1a2a';
+      ctx.fillRect(bx, by + bh - 14, bw, 14);
 
-      // Puerta
-      const dx = bx + bw/2 - 6;
-      const dy = by + bh - 14;
-      ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(dx, dy, 12, 14);
-      ctx.fillStyle = '#007744';
-      ctx.fillRect(dx + 1, dy + 1, 10, 12);
+      // Puerta de entrada
+      ctx.fillStyle = '#004d40';
+      ctx.fillRect(bx + bw/2 - 8, by + bh - 12, 16, 12);
+      ctx.fillStyle = '#00695c';
+      ctx.fillRect(bx + bw/2 - 6, by + bh - 10, 6, 9);
+      ctx.fillRect(bx + bw/2 + 1, by + bh - 10, 6, 9);
 
-      // Ventanas
-      ctx.fillStyle = 'rgba(255,255,200,0.7)';
-      ctx.fillRect(bx + 6, by + topH + 6, 8, 6);
-      ctx.fillRect(bx + bw - 14, by + topH + 6, 8, 6);
+      // Ventanas sobre la entrada
+      ctx.fillStyle = 'rgba(255,230,100,0.6)';
+      ctx.fillRect(bx + 5, by + bh - 22, 7, 5);
+      ctx.fillRect(bx + bw - 12, by + bh - 22, 7, 5);
 
+      // Borde de descubierto
       if (discovered) {
         ctx.strokeStyle = '#09D85D';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.5;
         ctx.strokeRect(bx + 1, by + 1, bw - 2, bh - 2);
       }
     };
@@ -1163,29 +1247,32 @@ const handleFastTravel = useCallback((region: Region) => {
     <div className="fixed inset-0 bg-[#1a2a1a] overflow-hidden">
       <canvas ref={canvasRef} className="w-full h-full" style={{ touchAction: 'none', display: 'block' }} />
       
-      {/* Header UI */}
-      <div className="fixed top-0 left-0 right-0 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/70 to-transparent pointer-events-none">
-        <div className="flex items-center gap-3 pointer-events-auto">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#00564B] rounded-full">
-            <div className="w-2 h-2 bg-[#09D85D] rounded-full animate-pulse" />
-            <span className="text-white text-sm font-bold">ATC CAMPUS</span>
+      {/* Header UI - compacto en mobile */}
+      <div className="fixed top-0 left-0 right-0 flex items-center justify-between px-3 py-2 bg-gradient-to-b from-black/80 to-transparent pointer-events-none z-40">
+        {/* Izquierda: logo + region actual */}
+        <div className="flex items-center gap-2 pointer-events-auto">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#00564B] rounded-full">
+            <div className="w-1.5 h-1.5 bg-[#09D85D] rounded-full animate-pulse" />
+            <span className="text-white text-xs font-bold">ATC</span>
           </div>
           {currentRegion && (
-            <div 
-              className="px-3 py-1.5 rounded-full text-xs font-medium text-white"
+            <div
+              className="px-2 py-1 rounded-full text-[10px] font-medium text-white max-w-[90px] truncate"
               style={{ backgroundColor: currentRegion.palette.accent }}
             >
               {currentRegion.name}
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2 pointer-events-auto">
-          <div className="px-3 py-1.5 bg-black/50 rounded-full text-white text-sm">
-  {discoveredCount}/{TOTAL_COMMUNITIES}
-  </div>
-  <button
+
+        {/* Derecha: contador + MAPA */}
+        <div className="flex items-center gap-1.5 pointer-events-auto">
+          <div className="px-2 py-1 bg-black/60 rounded-full text-white text-xs">
+            {discoveredCount}/{TOTAL_COMMUNITIES}
+          </div>
+          <button
             onClick={() => setShowMap(true)}
-            className="px-4 py-1.5 bg-[#00564B] hover:bg-[#00463B] text-white text-sm font-medium rounded-full transition-colors"
+            className="px-3 py-1 bg-[#00564B] hover:bg-[#00463B] text-white text-xs font-bold rounded-full transition-colors"
           >
             MAPA
           </button>
@@ -1199,123 +1286,101 @@ const handleFastTravel = useCallback((region: Region) => {
         </div>
       )}
 
-      {/* Terminal */}
-  <div className={`fixed transition-all duration-300 ${
-    terminalMode === 'full' 
-      ? 'inset-4 md:inset-8' 
-      : terminalMode === 'mini'
-        ? 'bottom-0 left-4 right-4 md:left-auto md:right-4 md:w-72'
-        : 'bottom-0 left-4 right-4 md:left-auto md:right-4 md:w-80'
-  } bg-[#0a0f0a] border border-[#1a2a1a] ${terminalMode === 'full' ? 'rounded-lg' : 'rounded-t-lg'} overflow-hidden shadow-2xl z-50 flex flex-col`}>
-    
-    {/* Header */}
-    <div className="flex items-center justify-between px-3 py-1.5 bg-[#00564B] shrink-0">
-      <div className="flex items-center gap-2">
-        <div className={`w-1.5 h-1.5 rounded-full ${pendingAction ? 'bg-[#ff9800] animate-pulse' : 'bg-[#09D85D]'}`} />
-        <span className="text-white text-[10px] font-bold font-mono">TERMINAL</span>
-        {terminalMode === 'mini' && terminalLogs.length > 0 && (
-          <span className="text-white/60 text-[10px] truncate max-w-[120px]">
-            {terminalLogs[terminalLogs.length - 1]?.message.substring(0, 25)}...
-          </span>
-        )}
-      </div>
-      <div className="flex items-center gap-1">
-        {/* Minimizar */}
-        <button
-          onClick={() => setTerminalMode(terminalMode === 'mini' ? 'normal' : 'mini')}
-          className="p-1 text-white/60 hover:text-white transition-colors"
-          title={terminalMode === 'mini' ? 'Expandir' : 'Minimizar'}
-        >
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={terminalMode === 'mini' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
-          </svg>
-        </button>
-        {/* Fullscreen */}
-        <button
-          onClick={() => setTerminalMode(terminalMode === 'full' ? 'normal' : 'full')}
-          className="p-1 text-white/60 hover:text-white transition-colors"
-          title={terminalMode === 'full' ? 'Salir de pantalla completa' : 'Pantalla completa'}
-        >
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            {terminalMode === 'full' ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-            )}
-          </svg>
-        </button>
-      </div>
-    </div>
-    
-    {/* Content - visible si no esta minimizado */}
-    {terminalMode !== 'mini' && (
-      <>
-        {/* Logs */}
+      {/* Activity log - siempre visible al lado del joystick */}
+      <div
+        className={`fixed z-50 transition-all duration-200 bg-black/70 border border-white/10 rounded-lg overflow-hidden backdrop-blur-sm ${
+          terminalMode === 'open'
+            ? 'bottom-4 left-32 right-4 md:left-auto md:right-4 md:w-72'
+            : 'bottom-4 left-32 right-4 md:left-auto md:right-4 md:w-72'
+        }`}
+        style={{ height: terminalMode === 'open' ? '96px' : '32px' }}
+      >
+        {/* Barra superior: solo controles, sin label "TERMINAL" */}
         <div
-          ref={terminalRef}
-          className={`overflow-y-auto p-2 font-mono text-[10px] space-y-1 ${terminalMode === 'full' ? 'flex-1' : 'h-16'}`}
+          className="flex items-center justify-between px-2 py-1 cursor-pointer"
+          style={{ height: '32px' }}
+          onClick={() => setTerminalMode(prev => prev === 'open' ? 'mini' : 'open')}
         >
-          {(terminalMode === 'full' ? terminalLogs : terminalLogs.slice(-3)).map((log) => (
-            <div key={log.id} className="flex items-start gap-1.5">
-              <span className="text-[#555] shrink-0 text-[9px]">
-                {log.timestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-              </span>
-              <span className={`flex-1 ${
-                log.type === 'discovery' ? 'text-[#09D85D]' :
-                log.type === 'travel' ? 'text-[#00bcd4]' :
-                log.type === 'info' ? 'text-[#777]' :
-                'text-[#ff9800]'
-              }`}>
-                {log.message}
-              </span>
-            </div>
-          ))}
-        </div>
-        
-        {/* Accion pendiente - comunidad descubierta */}
-        {pendingAction && (
-          <div className="px-2 py-2 bg-[#0d1a0d] border-t border-[#1a2a1a]">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-sm shrink-0">{SPORT_EMOJI[pendingAction.community.sport]}</span>
-                <div className="min-w-0">
-                  <p className="text-[#09D85D] text-[10px] font-bold truncate">{pendingAction.community.name}</p>
-                  <p className="text-[#666] text-[8px]">{pendingAction.community.members} miembros</p>
-                </div>
-              </div>
+          {/* Dot de estado */}
+          <div className={`w-1.5 h-1.5 rounded-full ${pendingAction ? 'bg-[#ff9800] animate-pulse' : 'bg-[#09D85D]'}`} />
+
+          {/* En mini: mostrar el último evento inline */}
+          {terminalMode === 'mini' && (
+            <span className="text-white/50 text-[9px] font-mono truncate mx-2 flex-1">
+              {pendingAction
+                ? pendingAction.community.name
+                : terminalLogs.length > 0
+                  ? terminalLogs[terminalLogs.length - 1].message
+                  : '...'}
+            </span>
+          )}
+
+          <div className="flex items-center gap-1 ml-auto">
+            {/* Unirme en mini si hay pendingAction */}
+            {terminalMode === 'mini' && pendingAction && (
               <a
                 href={pendingAction.community.whatsapp}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="shrink-0 px-3 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-[9px] font-bold rounded transition-colors"
+                onClick={(e) => e.stopPropagation()}
+                className="px-2 py-0.5 bg-[#25D366] text-white text-[8px] font-bold rounded"
               >
                 Unirme
               </a>
-            </div>
+            )}
+            {/* Toggle */}
+            <span className="text-white/40 text-[9px] px-1">
+              {terminalMode === 'open' ? '∨' : '∧'}
+            </span>
+          </div>
+        </div>
+
+        {/* Logs — visibles cuando está open */}
+        {terminalMode === 'open' && (
+          <div
+            ref={terminalRef}
+            className="overflow-hidden px-2 pb-1 font-mono text-[9px] space-y-0.5"
+            style={{ height: '64px' }}
+          >
+            {terminalLogs.slice(-4).map((log) => (
+              <div key={log.id} className="flex items-start gap-1.5 leading-tight">
+                <span className="text-white/30 shrink-0 text-[8px] mt-px">
+                  {log.timestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <span className={`flex-1 truncate ${
+                  log.type === 'discovery' ? 'text-[#09D85D]' :
+                  log.type === 'travel' ? 'text-[#00bcd4]' :
+                  log.type === 'action' ? 'text-[#ff9800]' :
+                  'text-white/50'
+                }`}>
+                  {log.message}
+                </span>
+              </div>
+            ))}
+
+            {/* Si hay pendingAction, mostrar Unirme dentro del log */}
+            {pendingAction && (
+              <div className="flex items-center justify-between mt-0.5 pt-0.5 border-t border-white/10">
+                <span className="text-[#ff9800] text-[9px] truncate flex-1">
+                  {SPORT_EMOJI[pendingAction.community.sport]} {pendingAction.community.name}
+                </span>
+                <a
+                  href={pendingAction.community.whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 ml-2 px-2 py-0.5 bg-[#25D366] text-white text-[8px] font-bold rounded"
+                >
+                  Unirme
+                </a>
+              </div>
+            )}
           </div>
         )}
-        
-        {/* Footer */}
-        <div className="px-2 py-1 bg-[#060a06] border-t border-[#1a2a1a] flex items-center gap-1 shrink-0">
-          <span className="text-[#09D85D] text-[10px]">$</span>
-          <span className="text-[#444] text-[10px] animate-pulse">_</span>
-          <span className="text-[#333] text-[8px] ml-auto">T: ocultar</span>
-        </div>
-      </>
-    )}
-  </div>
+      </div>
 
-      {/* Boton mapa flotante - mobile */}
-      <button
-        onClick={() => setShowMap(true)}
-        className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full bg-[#00564B] border-2 border-[#09D85D] flex items-center justify-center text-[#09D85D] font-bold text-xs md:hidden"
-      >
-        M
-      </button>
-
-      {/* Joystick (mobile) - visible en pantallas pequenas */}
+      {/* Joystick (mobile) - al mismo nivel que terminal */}
       <div
-        className="fixed bottom-8 left-8 w-28 h-28 rounded-full bg-black/40 border-2 border-white/20 md:hidden touch-none z-40"
+        className="fixed bottom-4 left-4 w-24 h-24 rounded-full bg-black/40 border-2 border-white/20 md:hidden touch-none z-40"
         onTouchStart={handleJoyStart}
         onTouchMove={handleJoyMove}
         onTouchEnd={handleJoyEnd}
