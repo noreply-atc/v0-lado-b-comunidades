@@ -1128,7 +1128,7 @@ export default function GamePage() {
         </div>
       )}
 
-      {/* Terminal integrada - siempre visible abajo */}
+      {/* Terminal integrada */}
   <div className={`fixed transition-all duration-300 ${
     terminalMode === 'full' 
       ? 'inset-4 md:inset-8' 
@@ -1262,7 +1262,8 @@ export default function GamePage() {
           />
           
           <div className="relative z-10 w-full max-w-lg max-h-[90vh] bg-[#0d1210] border-2 border-[#00564B] rounded-xl shadow-2xl overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between px-5 py-4 bg-[#00564B] shrink-0">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 bg-[#00564B] shrink-0">
               <div>
                 <h2 className="text-white text-lg font-bold">ARGENTINA</h2>
                 <p className="text-[#88ccaa] text-xs">{discoveredCount}/{TOTAL_COMMUNITIES} comunidades</p>
@@ -1277,53 +1278,185 @@ export default function GamePage() {
               </button>
             </div>
 
-            <div className="px-4 py-3 bg-[#0d1210] border-b border-[#1a2a1a] shrink-0">
-              <input
-                type="text"
-                placeholder="Buscar region o comunidad..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2 bg-[#1a2a1a] border border-[#2a3a2a] rounded-lg text-white text-sm placeholder-[#666] focus:outline-none focus:border-[#00564B]"
-              />
+            {/* Tabs */}
+            <div className="flex border-b border-[#1a2a1a] shrink-0">
+              <button
+                onClick={() => setMapView('map')}
+                className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                  mapView === 'map' 
+                    ? 'bg-[#1a2a1a] text-[#09D85D] border-b-2 border-[#09D85D]' 
+                    : 'text-[#888] hover:text-white'
+                }`}
+              >
+                Mapa
+              </button>
+              <button
+                onClick={() => setMapView('list')}
+                className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                  mapView === 'list' 
+                    ? 'bg-[#1a2a1a] text-[#09D85D] border-b-2 border-[#09D85D]' 
+                    : 'text-[#888] hover:text-white'
+                }`}
+              >
+                Lista
+              </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {filteredRegions.length === 0 ? (
-                <p className="text-center text-[#666] py-8">No se encontraron resultados</p>
-              ) : (
-                filteredRegions.map((region) => {
-                  const discoveredInRegion = region.communities.filter(c => discoveredRef.current.has(c.id)).length;
-                  const allDiscovered = discoveredInRegion === region.communities.length;
+            {/* Content */}
+            {mapView === 'map' ? (
+              /* Vista Mapa Visual estilo Pokemon */
+              <div className="flex-1 overflow-hidden p-3 bg-[#0a0f0a]">
+                <div className="relative w-full aspect-[3/4] max-h-[60vh] mx-auto rounded-lg overflow-hidden border-4 border-[#2a3a2a]" style={{ background: 'linear-gradient(135deg, #1a3a6a 0%, #2a4a8a 50%, #1a3a6a 100%)' }}>
+                  {/* Water pattern overlay */}
+                  <div className="absolute inset-0 opacity-30" style={{
+                    backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,0.1) 4px, rgba(255,255,255,0.1) 8px)'
+                  }} />
                   
-                  return (
-                    <button
-                      key={region.id}
-                      onClick={() => handleFastTravel(region)}
-                      className="w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-150 hover:scale-[1.01]"
-                      style={{
-                        backgroundColor: '#141a18',
-                        border: `2px solid ${allDiscovered ? '#09D85D' : region.palette.accent}40`,
-                      }}
-                    >
-                      <div className="flex items-center gap-3">
+                  {/* Argentina landmass shape - simplified */}
+                  <svg viewBox="0 0 100 140" className="absolute inset-0 w-full h-full">
+                    {/* Main landmass */}
+                    <path
+                      d="M30 8 L55 5 L70 10 L75 20 L72 35 L70 50 L68 65 L65 80 L60 95 L55 110 L50 125 L45 135 L42 125 L38 110 L35 95 L32 80 L30 65 L28 50 L30 35 L32 20 Z"
+                      fill="#3a7a3a"
+                      stroke="#2a5a2a"
+                      strokeWidth="1"
+                    />
+                    {/* Lighter grass patches */}
+                    <path d="M35 15 L50 12 L60 18 L55 30 L40 28 Z" fill="#4a9a4a" opacity="0.6" />
+                    <path d="M38 50 L55 48 L58 60 L45 65 Z" fill="#4a9a4a" opacity="0.5" />
+                    <path d="M40 85 L55 82 L52 98 L42 95 Z" fill="#4a9a4a" opacity="0.4" />
+                  </svg>
+                  
+                  {/* Regions as clickable squares */}
+                  {REGIONS.map((region) => {
+                    const discoveredInRegion = region.communities.filter(c => discoveredRef.current.has(c.id)).length;
+                    const allDiscovered = discoveredInRegion === region.communities.length;
+                    const hasDiscovery = discoveredInRegion > 0;
+                    
+                    // Map coordinates based on mapX/mapY (normalized to 0-100 range)
+                    const x = ((region.mapX - 40) / 40) * 70 + 15; // 15-85% range
+                    const y = ((region.mapY - 10) / 60) * 85 + 5;  // 5-90% range
+                    
+                    return (
+                      <button
+                        key={region.id}
+                        onClick={() => handleFastTravel(region)}
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-150 hover:scale-125 hover:z-10"
+                        style={{
+                          left: `${x}%`,
+                          top: `${y}%`,
+                        }}
+                        title={`${region.name} (${discoveredInRegion}/${region.communities.length})`}
+                      >
+                        {/* Building icon */}
                         <div 
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: region.palette.accent }}
-                        />
-                        <div className="text-left">
-                          <span className="text-white font-medium">{region.name}</span>
-                          <p className="text-[#666] text-xs">{region.communities.length} comunidades</p>
+                          className={`w-5 h-5 md:w-6 md:h-6 rounded-sm border-2 ${
+                            allDiscovered 
+                              ? 'border-[#09D85D] bg-[#09D85D]' 
+                              : hasDiscovery 
+                                ? 'border-[#ff9800] bg-[#8a4a00]'
+                                : 'border-[#5a3a1a] bg-[#3a2a1a]'
+                          }`}
+                          style={{ boxShadow: '2px 2px 0 rgba(0,0,0,0.5)' }}
+                        >
+                          {/* Inner square detail */}
+                          <div className={`w-full h-full flex items-center justify-center ${
+                            allDiscovered ? 'bg-[#006607]' : hasDiscovery ? 'bg-[#5a3000]' : 'bg-[#2a1a0a]'
+                          }`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${
+                              allDiscovered ? 'bg-[#09D85D]' : hasDiscovery ? 'bg-[#ff9800]' : 'bg-[#4a3a2a]'
+                            }`} />
+                          </div>
                         </div>
-                      </div>
-                      <span className={`text-sm font-bold ${allDiscovered ? 'text-[#09D85D]' : 'text-[#888]'}`}>
-                        {discoveredInRegion}/{region.communities.length}
-                      </span>
-                    </button>
-                  );
-                })
-              )}
-            </div>
+                      </button>
+                    );
+                  })}
+                  
+                  {/* Hub central marker */}
+                  <div 
+                    className="absolute transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 md:w-8 md:h-8"
+                    style={{ left: '50%', top: '55%' }}
+                  >
+                    <div className="w-full h-full rounded-full bg-[#00564B] border-2 border-[#09D85D] flex items-center justify-center animate-pulse">
+                      <span className="text-[6px] md:text-[8px] font-bold text-[#09D85D]">ATC</span>
+                    </div>
+                  </div>
+                  
+                  {/* Legend */}
+                  <div className="absolute bottom-2 left-2 bg-[#0a0f0a]/90 rounded px-2 py-1 text-[8px] space-y-0.5">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-[#09D85D] rounded-sm" />
+                      <span className="text-[#888]">Completa</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-[#ff9800] rounded-sm" />
+                      <span className="text-[#888]">En progreso</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-[#3a2a1a] border border-[#5a3a1a] rounded-sm" />
+                      <span className="text-[#888]">Sin explorar</span>
+                    </div>
+                  </div>
+                  
+                  {/* Region name on hover - shown at top */}
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-[#0a0f0a]/90 rounded px-3 py-1">
+                    <span className="text-[#09D85D] text-xs font-bold">Toca una ciudad para viajar</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Vista Lista */
+              <>
+                <div className="px-4 py-3 bg-[#0d1210] border-b border-[#1a2a1a] shrink-0">
+                  <input
+                    type="text"
+                    placeholder="Buscar region o comunidad..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full px-4 py-2 bg-[#1a2a1a] border border-[#2a3a2a] rounded-lg text-white text-sm placeholder-[#666] focus:outline-none focus:border-[#00564B]"
+                  />
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                  {filteredRegions.length === 0 ? (
+                    <p className="text-center text-[#666] py-8">No se encontraron resultados</p>
+                  ) : (
+                    filteredRegions.map((region) => {
+                      const discoveredInRegion = region.communities.filter(c => discoveredRef.current.has(c.id)).length;
+                      const allDiscovered = discoveredInRegion === region.communities.length;
+                      
+                      return (
+                        <button
+                          key={region.id}
+                          onClick={() => handleFastTravel(region)}
+                          className="w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-150 hover:scale-[1.01]"
+                          style={{
+                            backgroundColor: '#141a18',
+                            border: `2px solid ${allDiscovered ? '#09D85D' : region.palette.accent}40`,
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: region.palette.accent }}
+                            />
+                            <div className="text-left">
+                              <span className="text-white font-medium">{region.name}</span>
+                              <p className="text-[#666] text-xs">{region.communities.length} comunidades</p>
+                            </div>
+                          </div>
+                          <span className={`text-sm font-bold ${allDiscovered ? 'text-[#09D85D]' : 'text-[#888]'}`}>
+                            {discoveredInRegion}/{region.communities.length}
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </>
+            )}
             
+            {/* Footer */}
             <div className="px-5 py-3 bg-[#0a0f0a] border-t border-[#1a1a1a] flex items-center justify-center gap-4 shrink-0">
               <kbd className="px-2 py-1 bg-[#1a1a1a] text-[#888] text-xs rounded border border-[#333]">M</kbd>
               <span className="text-[#555] text-xs">para cerrar</span>
