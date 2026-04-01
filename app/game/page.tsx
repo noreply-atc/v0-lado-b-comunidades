@@ -51,14 +51,16 @@ const WORLD_PX = WORLD_W * TILE;
 const WORLD_PY = WORLD_H * TILE;
 
 // Regiones con datos reales de las comunidades ATC
+// Mapa 80x80, regiones de 14x12 tiles, espaciadas para no solapar
+// Centro del mapa (40,40) reservado para Stadium y cruces de caminos
 const REGIONS: Region[] = [
   {
     id: 'caba',
     name: 'CABA',
     theme: 'urban',
     palette: { ground: '#4a4a5a', groundAlt: '#5a5a6a', path: '#6a6a7a', accent: '#ff6b35' },
-    description: 'Asfalto, jacarandas, palomas, adoquines porteños',
-    worldX: 42, worldY: 42,
+    description: 'Asfalto, jacarandas, palomas, adoquines portenos',
+    worldX: 46, worldY: 46, // Sureste del centro
     mapX: 72, mapY: 52,
     communities: [
       { id: 'caba-main', name: 'Comunidad CABA', sport: 'padel', members: 1704, whatsapp: 'https://chat.whatsapp.com/KmzpxJFG31g8H0EC2rwUDp', city: 'Capital Federal' },
@@ -74,7 +76,7 @@ const REGIONS: Region[] = [
     theme: 'suburban',
     palette: { ground: '#5a6a4a', groundAlt: '#4a5a3a', path: '#8a9a6a', accent: '#4caf50' },
     description: 'Quintas, countries, verde del conurbano norte',
-    worldX: 56, worldY: 28,
+    worldX: 62, worldY: 26, // Noreste
     mapX: 75, mapY: 48,
     communities: [
       { id: 'gba-norte-main', name: 'Comunidad GBA Norte', sport: 'padel', members: 172, whatsapp: 'https://chat.whatsapp.com/BXQTG9HXbng4MY101ILOZW', city: 'Zona Norte' },
@@ -90,7 +92,7 @@ const REGIONS: Region[] = [
     theme: 'industrial',
     palette: { ground: '#5a5a5a', groundAlt: '#4a4a4a', path: '#7a7a7a', accent: '#ff5722' },
     description: 'Zona industrial, estadios, comunidad pujante',
-    worldX: 56, worldY: 56,
+    worldX: 62, worldY: 46, // Este
     mapX: 73, mapY: 58,
     communities: [
       { id: 'gba-sur-main', name: 'Comunidad GBA Sur', sport: 'padel', members: 183, whatsapp: 'https://chat.whatsapp.com/H3VoDuisgC7HO23B0Cdlra', city: 'Zona Sur' },
@@ -106,7 +108,7 @@ const REGIONS: Region[] = [
     theme: 'suburban',
     palette: { ground: '#6a7a5a', groundAlt: '#5a6a4a', path: '#9aaa7a', accent: '#8bc34a' },
     description: 'Barrios tradicionales, clubes de barrio',
-    worldX: 28, worldY: 56,
+    worldX: 20, worldY: 46, // Suroeste
     mapX: 68, mapY: 52,
     communities: [
       { id: 'gba-oeste-main', name: 'Comunidad GBA Oeste', sport: 'padel', members: 129, whatsapp: 'https://chat.whatsapp.com/H4EqXrAuya47flouWTno4o', city: 'Zona Oeste' },
@@ -121,8 +123,8 @@ const REGIONS: Region[] = [
     name: 'Cordoba',
     theme: 'sierras',
     palette: { ground: '#5a7a3a', groundAlt: '#4a6a2a', path: '#c8a96e', accent: '#8bc34a' },
-    description: 'Sierras, fernet, cuarteto, corazón del país',
-    worldX: 28, worldY: 28,
+    description: 'Sierras, fernet, cuarteto, corazon del pais',
+    worldX: 20, worldY: 26, // Noroeste del centro
     mapX: 58, mapY: 42,
     communities: [
       { id: 'cordoba-main', name: 'Comunidad Cordoba', sport: 'padel', members: 727, whatsapp: 'https://chat.whatsapp.com/EvEGd0DuKlb1aPREiktK0Z', city: 'Ciudad de Cordoba' },
@@ -137,7 +139,7 @@ const REGIONS: Region[] = [
     theme: 'andes',
     palette: { ground: '#8a6a4a', groundAlt: '#9a7a5a', path: '#d4a96e', accent: '#9c27b0' },
     description: 'Vinedos, Andes nevados, sol y buen vino',
-    worldX: 8, worldY: 36,
+    worldX: 2, worldY: 36, // Oeste
     mapX: 42, mapY: 48,
     communities: [
       { id: 'mendoza-main', name: 'Comunidad Mendoza', sport: 'padel', members: 771, whatsapp: 'https://chat.whatsapp.com/GW4KNeUH8Br8FJyLBAM53e', city: 'Ciudad de Mendoza' },
@@ -150,7 +152,7 @@ const REGIONS: Region[] = [
     theme: 'litoral',
     palette: { ground: '#3a6a3a', groundAlt: '#4a7a4a', path: '#8ab46e', accent: '#4caf50' },
     description: 'Cuna de la bandera, rio Parana, pasion futbolera',
-    worldX: 42, worldY: 14,
+    worldX: 46, worldY: 10, // Norte-centro
     mapX: 62, mapY: 42,
     communities: [
       { id: 'rosario-main', name: 'Comunidad Rosario', sport: 'padel', members: 27, whatsapp: 'https://chat.whatsapp.com/KI7lpPqzTqUFetILZN5eqb', city: 'Rosario' },
@@ -164,7 +166,7 @@ const REGIONS: Region[] = [
     theme: 'noa',
     palette: { ground: '#8a5a2a', groundAlt: '#9a6a3a', path: '#d4956e', accent: '#ff9800' },
     description: 'Jardin de la Republica, empanadas, cerros verdes',
-    worldX: 28, worldY: 4,
+    worldX: 30, worldY: 2, // Norte
     mapX: 56, mapY: 22,
     communities: [
       { id: 'tucuman-main', name: 'Comunidad Tucuman', sport: 'padel', members: 188, whatsapp: 'https://chat.whatsapp.com/G9cNLJr7Xgo4lZQSVpCSuO', city: 'San Miguel de Tucuman' },
@@ -177,7 +179,7 @@ const REGIONS: Region[] = [
     theme: 'patagonia',
     palette: { ground: '#4a6a5a', groundAlt: '#3a5a4a', path: '#8ab4a4', accent: '#26a69a' },
     description: 'Lagos, volcanes, dinosaurios, petroleo',
-    worldX: 8, worldY: 54,
+    worldX: 2, worldY: 60, // Suroeste extremo
     mapX: 45, mapY: 68,
     communities: [
       { id: 'neuquen-main', name: 'Comunidad Neuquen', sport: 'padel', members: 202, whatsapp: 'https://chat.whatsapp.com/JWNVHHrCouGJWPDChGZJnH', city: 'Ciudad de Neuquen' },
@@ -190,7 +192,7 @@ const REGIONS: Region[] = [
     theme: 'coastal',
     palette: { ground: '#3a5a6a', groundAlt: '#4a6a7a', path: '#aaccdd', accent: '#00bcd4' },
     description: 'La Feliz, playas, lobos marinos, alfajores',
-    worldX: 56, worldY: 42,
+    worldX: 62, worldY: 60, // Sureste
     mapX: 70, mapY: 62,
     communities: [
       { id: 'mdp-main', name: 'Comunidad Mar del Plata', sport: 'padel', members: 338, whatsapp: 'https://chat.whatsapp.com/Jw12EFJM8jzKtMd6GAUSJI', city: 'Mar del Plata' },
@@ -202,7 +204,7 @@ const REGIONS: Region[] = [
     theme: 'urban',
     palette: { ground: '#5a5a6a', groundAlt: '#4a4a5a', path: '#7a7a8a', accent: '#2196f3' },
     description: 'Ciudad de las diagonales, estudiantes, pincha y lobo',
-    worldX: 56, worldY: 70,
+    worldX: 46, worldY: 62, // Sur centro
     mapX: 73, mapY: 55,
     communities: [
       { id: 'la-plata-main', name: 'Comunidad La Plata', sport: 'padel', members: 66, whatsapp: 'https://chat.whatsapp.com/KwKWxXXg5Th1NkZJyTj2bS', city: 'La Plata' },
@@ -213,8 +215,8 @@ const REGIONS: Region[] = [
     name: 'Salta',
     theme: 'noa',
     palette: { ground: '#9a6a3a', groundAlt: '#8a5a2a', path: '#c89a6e', accent: '#e65100' },
-    description: 'La linda, empanadas salteñas, cerros multicolores',
-    worldX: 14, worldY: 4,
+    description: 'La linda, empanadas saltenas, cerros multicolores',
+    worldX: 14, worldY: 2, // Noroeste extremo
     mapX: 52, mapY: 18,
     communities: [
       { id: 'salta-main', name: 'Comunidad Salta', sport: 'padel', members: 83, whatsapp: 'https://chat.whatsapp.com/ICWGzwEwftsFVniDWHTKCa', city: 'Ciudad de Salta' },
@@ -226,7 +228,7 @@ const REGIONS: Region[] = [
     theme: 'cuyo',
     palette: { ground: '#9a7a4a', groundAlt: '#aa8a5a', path: '#c8a96e', accent: '#795548' },
     description: 'Sol, vino, Valle de la Luna, dique',
-    worldX: 8, worldY: 22,
+    worldX: 2, worldY: 20, // Oeste norte
     mapX: 45, mapY: 42,
     communities: [
       { id: 'san-juan-main', name: 'Comunidad San Juan', sport: 'padel', members: 92, whatsapp: 'https://chat.whatsapp.com/DStJHwaCHt9BTz2TotcQw3', city: 'San Juan' },
@@ -237,8 +239,8 @@ const REGIONS: Region[] = [
     name: 'Formosa',
     theme: 'noreste',
     palette: { ground: '#2a6a2a', groundAlt: '#1a5a1a', path: '#6ab46a', accent: '#00e676' },
-    description: 'Calor, rio, monte, bañados del chaco',
-    worldX: 56, worldY: 4,
+    description: 'Calor, rio, monte, banados del chaco',
+    worldX: 62, worldY: 2, // Noreste extremo
     mapX: 62, mapY: 22,
     communities: [
       { id: 'formosa-main', name: 'Comunidad Formosa', sport: 'padel', members: 151, whatsapp: 'https://chat.whatsapp.com/EevdhvdJji4J6AeFsJyp1G', city: 'Formosa' },
@@ -250,7 +252,7 @@ const REGIONS: Region[] = [
     theme: 'noreste',
     palette: { ground: '#1a5a1a', groundAlt: '#2a6a2a', path: '#5aa45a', accent: '#4caf50' },
     description: 'Cataratas, selva, yerba mate, tierra colorada',
-    worldX: 70, worldY: 4,
+    worldX: 62, worldY: 12, // Noreste
     mapX: 72, mapY: 28,
     communities: [
       { id: 'blue-padel', name: 'Blue Padel Quincho', sport: 'padel', members: 55, whatsapp: 'https://chat.whatsapp.com/K6p7ZDy1XSp9a3tRirtBQr', city: 'El Dorado' },
@@ -262,8 +264,8 @@ const REGIONS: Region[] = [
     name: 'Resistencia',
     theme: 'noreste',
     palette: { ground: '#3a7a3a', groundAlt: '#2a6a2a', path: '#7ab47a', accent: '#66bb6a' },
-    description: 'Ciudad de las esculturas, calor, chamamé',
-    worldX: 56, worldY: 14,
+    description: 'Ciudad de las esculturas, calor, chamame',
+    worldX: 46, worldY: 2, // Norte centro-este
     mapX: 62, mapY: 28,
     communities: [
       { id: 'resistencia-main', name: 'Comunidad Resistencia', sport: 'padel', members: 66, whatsapp: 'https://chat.whatsapp.com/EtV8Kkfrfa22i5yFMo4XyQ', city: 'Resistencia' },
@@ -275,7 +277,7 @@ const REGIONS: Region[] = [
     theme: 'noa',
     palette: { ground: '#aa6a3a', groundAlt: '#9a5a2a', path: '#d4956e', accent: '#ff6f00' },
     description: 'Quebrada de Humahuaca, cerros de colores, pachamama',
-    worldX: 14, worldY: 14,
+    worldX: 2, worldY: 2, // Noroeste extremo extremo
     mapX: 52, mapY: 12,
     communities: [
       { id: 'jujuy-main', name: 'Comunidad Jujuy', sport: 'padel', members: 7, whatsapp: 'https://chat.whatsapp.com/LRkWKmcuB7iIqyUFy4IX43', city: 'San Salvador de Jujuy' },
@@ -287,7 +289,7 @@ const REGIONS: Region[] = [
     theme: 'cuyo',
     palette: { ground: '#8a6a3a', groundAlt: '#9a7a4a', path: '#c8a96e', accent: '#a1887f' },
     description: 'Talampaya, sol, olivos, vino torrontes',
-    worldX: 8, worldY: 14,
+    worldX: 2, worldY: 50, // Oeste sur
     mapX: 48, mapY: 35,
     communities: [
       { id: 'la-rioja-main', name: 'Comunidad La Rioja', sport: 'padel', members: 48, whatsapp: 'https://chat.whatsapp.com/Jg3tYcaz0660zoky0EapQZ', city: 'La Rioja' },
@@ -300,7 +302,7 @@ const REGIONS: Region[] = [
     theme: 'pampas',
     palette: { ground: '#6a8a3a', groundAlt: '#7a9a4a', path: '#c8b46e', accent: '#cddc39' },
     description: 'Sierras bonaerenses, piedra movediza, salame',
-    worldX: 70, worldY: 56,
+    worldX: 30, worldY: 62, // Sur centro
     mapX: 68, mapY: 62,
     communities: [
       { id: 'tandil-main', name: 'Comunidad Tandil', sport: 'padel', members: 40, whatsapp: 'https://chat.whatsapp.com/HMCaMmFIili1UR6du3dZIQ', city: 'Tandil' },
@@ -312,7 +314,7 @@ const REGIONS: Region[] = [
     theme: 'litoral',
     palette: { ground: '#4a7a4a', groundAlt: '#3a6a3a', path: '#9ab49a', accent: '#81c784' },
     description: 'Termas, carnaval, arroyos, citrus',
-    worldX: 70, worldY: 28,
+    worldX: 46, worldY: 26, // Noreste del centro
     mapX: 68, mapY: 38,
     communities: [
       { id: 'la-quinta', name: 'La Quinta', sport: 'padel', members: 50, whatsapp: 'https://chat.whatsapp.com/ElJNSQdjww1JctOUBrb0ai', city: 'Islas Malvinas' },
@@ -324,7 +326,7 @@ const REGIONS: Region[] = [
     theme: 'pampas',
     palette: { ground: '#7a9a4a', groundAlt: '#6a8a3a', path: '#d4c46e', accent: '#dce775' },
     description: 'Llanura pampeana, estancias, campo infinito',
-    worldX: 42, worldY: 70,
+    worldX: 20, worldY: 62, // Sur
     mapX: 65, mapY: 58,
     communities: [
       { id: 'la-nave', name: 'La Nave Padel', sport: 'padel', members: 55, whatsapp: 'https://chat.whatsapp.com/JULhsyntLtmEXjh3Aynray', city: 'Azul' },
@@ -349,19 +351,23 @@ interface Building {
   h: number;
 }
 
-// Build all buildings from regions with proper grid layout
+// Build all buildings from regions with proper grid layout - SPACED OUT
 function generateBuildings(): Building[] {
   const buildings: Building[] = [];
   
   REGIONS.forEach(region => {
-    // Layout de comunidades en grid dentro de la region
-    const cols = Math.ceil(Math.sqrt(region.communities.length));
+    // Layout: cada region tiene 14x12 tiles, edificios de 5x4
+    // Usar grid de 2 columnas max con buen espaciado
+    const maxCols = 2;
+    const spacingX = 7; // Espacio horizontal entre edificios
+    const spacingY = 5; // Espacio vertical entre edificios
     
     region.communities.forEach((community, idx) => {
-      const col = idx % cols;
-      const row = Math.floor(idx / cols);
-      const buildingX = region.worldX + 1 + col * 7;
-      const buildingY = region.worldY + 1 + row * 6;
+      const col = idx % maxCols;
+      const row = Math.floor(idx / maxCols);
+      // Offset inicial + espaciado
+      const buildingX = region.worldX + 2 + col * spacingX;
+      const buildingY = region.worldY + 2 + row * spacingY;
       buildings.push({
         community,
         region,
@@ -390,10 +396,10 @@ export default function GamePage() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   
-  // Game state refs
+  // Game state refs - spawn on main road east of stadium
   const playerRef = useRef({
-    x: 44 * TILE,
-    y: 40 * TILE,
+    x: 44 * TILE, // East of stadium (38-42), on the main road
+    y: 40 * TILE, // Center of world vertically
     w: 16,
     h: 20,
     speed: 2.5,
@@ -488,10 +494,11 @@ export default function GamePage() {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
-    // Stadium center
+    // Stadium center - positioned at world center (40,40) in the crossroads
+    // Regions are positioned to avoid this area
     const STADIUM = {
       x: 38,
-      y: 38,
+      y: 40,
       w: 4,
       h: 4,
     };
@@ -560,93 +567,143 @@ export default function GamePage() {
       }
     };
 
-    // Draw themed tile
+    // Simple hash for pseudo-random based on position
+    const hash = (x: number, y: number): number => {
+      const n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+      return n - Math.floor(n);
+    };
+
+    // Draw themed tile - Pokemon style organic grass
     const drawThemedTile = (tx: number, ty: number, wx: number, wy: number, region: Region | null) => {
+      const h = hash(tx, ty);
+      const h2 = hash(tx + 100, ty + 100);
+      const h3 = hash(tx * 3, ty * 3);
+      
       if (!region) {
-        const isAlt = (tx + ty) % 2 === 0;
-        ctx.fillStyle = isAlt ? '#2d6035' : '#3a7d44';
+        // Base grass color con variacion sutil (NO cuadrille)
+        const baseGreen = 58 + Math.floor(h * 12); // 58-70
+        const greenVariation = 125 + Math.floor(h2 * 20); // 125-145
+        ctx.fillStyle = `rgb(${baseGreen}, ${greenVariation}, ${50 + Math.floor(h * 10)})`;
         ctx.fillRect(wx, wy, TILE, TILE);
+        
+        // Detalles de pasto estilo Pokemon
+        // Briznas de pasto oscuro
+        if (h3 > 0.7) {
+          ctx.fillStyle = 'rgba(30,80,30,0.4)';
+          const gx = Math.floor(h * 24);
+          const gy = Math.floor(h2 * 24);
+          ctx.fillRect(wx + gx, wy + gy, 2, 5);
+          ctx.fillRect(wx + gx + 3, wy + gy + 1, 2, 4);
+        }
+        // Briznas claras ocasionales
+        if (h > 0.85) {
+          ctx.fillStyle = 'rgba(100,160,80,0.5)';
+          const gx = Math.floor(h2 * 20) + 4;
+          const gy = Math.floor(h3 * 20) + 4;
+          ctx.fillRect(wx + gx, wy + gy, 3, 6);
+        }
+        // Manchas mas claras para variedad
+        if (h2 > 0.9) {
+          ctx.fillStyle = 'rgba(90,150,70,0.3)';
+          ctx.fillRect(wx + Math.floor(h * 16), wy + Math.floor(h3 * 16), 8, 8);
+        }
         return;
       }
 
+      // Themed regions - tambien con variacion organica
       const { ground, groundAlt } = region.palette;
-      const isAlt = (tx + ty) % 2 === 0;
-      ctx.fillStyle = isAlt ? groundAlt : ground;
+      // Parsear colores y mezclar con variacion
+      const blend = 0.85 + h * 0.15; // 85%-100% del color base
+      ctx.fillStyle = h > 0.5 ? ground : groundAlt;
+      ctx.fillRect(wx, wy, TILE, TILE);
+      
+      // Overlay de variacion
+      ctx.fillStyle = `rgba(${h > 0.5 ? '255,255,255' : '0,0,0'},${0.02 + h2 * 0.04})`;
       ctx.fillRect(wx, wy, TILE, TILE);
 
-      const seed = (tx * 7 + ty * 13) % 100;
-      
+      // Detalles por tema
       switch (region.theme) {
         case 'urban':
         case 'suburban':
-          ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-          ctx.lineWidth = 1;
-          for (let i = 0; i < 4; i++) {
-            ctx.strokeRect(wx + i * 8, wy, 8, 16);
-            ctx.strokeRect(wx + i * 8 + 4, wy + 16, 8, 16);
+        case 'industrial':
+          // Adoquines/baldosas - solo sombras sutiles, no grid completo
+          if (h > 0.3) {
+            ctx.fillStyle = 'rgba(0,0,0,0.08)';
+            ctx.fillRect(wx + Math.floor(h * 28), wy + Math.floor(h2 * 28), 4, 4);
           }
           break;
           
         case 'sierras':
-          if (seed < 30) {
-            ctx.fillStyle = 'rgba(100,90,80,0.4)';
-            ctx.fillRect(wx + (seed % 20), wy + (seed % 15), 4, 3);
+          // Piedras y pastito de sierra
+          if (h > 0.85) {
+            ctx.fillStyle = 'rgba(100,90,80,0.5)';
+            ctx.fillRect(wx + Math.floor(h2 * 20) + 4, wy + Math.floor(h3 * 20) + 4, 6, 4);
+          }
+          if (h3 > 0.8) {
+            ctx.fillStyle = 'rgba(80,120,60,0.4)';
+            ctx.fillRect(wx + Math.floor(h * 24), wy + Math.floor(h2 * 20), 3, 5);
           }
           break;
           
         case 'andes':
         case 'cuyo':
-          if (seed < 10 && tx % 6 === 0) {
-            ctx.fillStyle = '#4a6a3a';
-            ctx.fillRect(wx + 12, wy + 8, 4, 16);
-            ctx.fillRect(wx + 8, wy + 12, 4, 8);
+          // Arena y rocas
+          if (h > 0.88) {
+            ctx.fillStyle = 'rgba(80,80,70,0.4)';
+            ctx.fillRect(wx + Math.floor(h2 * 22) + 2, wy + Math.floor(h3 * 22) + 2, 5, 4);
           }
           break;
           
         case 'patagonia':
-          if (seed < 25) {
-            ctx.fillStyle = 'rgba(255,255,255,0.5)';
-            ctx.beginPath();
-            ctx.arc(wx + 16, wy + 16, 6 + (seed % 4), 0, Math.PI * 2);
-            ctx.fill();
+          // Nieve y hielo
+          if (h > 0.75) {
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
+            const size = 4 + Math.floor(h2 * 6);
+            ctx.fillRect(wx + Math.floor(h3 * 20) + 4, wy + Math.floor(h * 20) + 4, size, size);
           }
           break;
           
         case 'noa':
-          if (seed < 8 && tx % 5 === 0) {
-            ctx.fillStyle = '#5a7a4a';
-            ctx.fillRect(wx + 14, wy + 4, 4, 24);
+          // Tierra roja y cactus ocasional
+          if (h > 0.92) {
+            ctx.fillStyle = '#4a6a3a';
+            ctx.fillRect(wx + 14, wy + 8, 3, 16);
+            ctx.fillRect(wx + 11, wy + 12, 3, 4);
+            ctx.fillRect(wx + 17, wy + 14, 3, 4);
           }
           break;
           
         case 'litoral':
         case 'noreste':
-          if (seed < 6 && tx % 7 === 0) {
-            ctx.fillStyle = '#5a3a1a';
-            ctx.fillRect(wx + 14, wy + 10, 4, 18);
-            ctx.fillStyle = '#3a8a3a';
-            ctx.fillRect(wx + 8, wy + 4, 16, 8);
+          // Selva - vegetacion densa
+          if (h > 0.8) {
+            ctx.fillStyle = 'rgba(40,100,40,0.4)';
+            ctx.fillRect(wx + Math.floor(h2 * 22) + 2, wy + Math.floor(h3 * 18) + 4, 4, 7);
+          }
+          if (h3 > 0.85) {
+            ctx.fillStyle = 'rgba(30,80,30,0.5)';
+            ctx.fillRect(wx + Math.floor(h * 20) + 6, wy + Math.floor(h2 * 20) + 6, 3, 5);
           }
           break;
           
         case 'pampas':
-          if (seed < 40) {
-            ctx.fillStyle = 'rgba(80,100,40,0.3)';
-            ctx.fillRect(wx + (seed % 24), wy + (seed % 20), 3, 6);
+          // Pasto pampeano alto
+          if (h > 0.6) {
+            ctx.fillStyle = 'rgba(100,130,60,0.35)';
+            ctx.fillRect(wx + Math.floor(h2 * 24), wy + Math.floor(h3 * 22), 3, 6);
+          }
+          if (h3 > 0.75) {
+            ctx.fillStyle = 'rgba(80,110,50,0.4)';
+            ctx.fillRect(wx + Math.floor(h * 20) + 8, wy + Math.floor(h2 * 18) + 6, 2, 7);
           }
           break;
           
         case 'coastal':
-          if (seed < 15) {
-            ctx.fillStyle = 'rgba(200,220,240,0.4)';
-            ctx.fillRect(wx + (seed % 20), wy + 20, 8, 2);
+          // Arena de playa
+          if (h > 0.7) {
+            ctx.fillStyle = 'rgba(220,210,180,0.25)';
+            ctx.fillRect(wx + Math.floor(h2 * 20) + 4, wy + Math.floor(h3 * 20) + 4, 6, 4);
           }
-          break;
-          
-        case 'industrial':
-          ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-          ctx.lineWidth = 1;
-          ctx.strokeRect(wx, wy, TILE, TILE);
           break;
       }
     };
