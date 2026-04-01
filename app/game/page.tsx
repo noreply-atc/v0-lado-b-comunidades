@@ -446,7 +446,7 @@ export default function GamePage() {
       { id: 1, type: 'info', message: 'Explora las comunidades de Argentina', timestamp: new Date() },
     ]);
   }, []);
-  const [terminalMode, setTerminalMode] = useState<'mini' | 'expanded'>('mini'); // mini=solo header, expanded=logs+accion
+  const [terminalMode, setTerminalMode] = useState<'open' | 'mini'>('open'); // open=logs visibles, mini=solo barra
   const [pendingAction, setPendingAction] = useState<{ community: Community; region: Region } | null>(null); // Comunidad esperando accion
   const [joyPos, setJoyPos] = useState({ x: 0, y: 0 }); // Posicion visual del joystick
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -543,13 +543,6 @@ const handleFastTravel = useCallback((region: Region) => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Terminal minimizada en mobile
-  useEffect(() => {
-    if (window.innerWidth < 768) {
-      setTerminalMode('mini');
-    }
-  }, []);
-
   // Main game effect
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -569,7 +562,7 @@ const handleFastTravel = useCallback((region: Region) => {
     const handleKeyDown = (e: KeyboardEvent) => {
       keysRef.current[e.key] = true;
       if (e.key === 'm' || e.key === 'M') setShowMap(prev => !prev);
-      if (e.key === 't' || e.key === 'T') setTerminalMode(prev => prev === 'mini' ? 'expanded' : 'mini');
+      if (e.key === 't' || e.key === 'T') setTerminalMode(prev => prev === 'open' ? 'mini' : 'open');
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       keysRef.current[e.key] = false;
@@ -1293,117 +1286,97 @@ const handleFastTravel = useCallback((region: Region) => {
         </div>
       )}
 
-      {/* Terminal */}
-      <div className={`fixed z-50 transition-all duration-300 flex flex-col bg-[#0a0f0a] border border-[#1a2a1a] shadow-2xl overflow-hidden rounded-lg ${
-        terminalMode === 'expanded'
-          ? 'bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80'
-          : 'bottom-4 left-32 right-4 md:left-auto md:right-4 md:w-80'
-      }`}>
-
-        {/* Header — siempre visible, clickeable */}
+      {/* Activity log - siempre visible al lado del joystick */}
+      <div
+        className={`fixed z-50 transition-all duration-200 bg-black/70 border border-white/10 rounded-lg overflow-hidden backdrop-blur-sm ${
+          terminalMode === 'open'
+            ? 'bottom-4 left-32 right-4 md:left-auto md:right-4 md:w-72'
+            : 'bottom-4 left-32 right-4 md:left-auto md:right-4 md:w-72'
+        }`}
+        style={{ height: terminalMode === 'open' ? '96px' : '32px' }}
+      >
+        {/* Barra superior: solo controles, sin label "TERMINAL" */}
         <div
-          className="flex items-center gap-2 px-3 py-2 bg-[#00564B] cursor-pointer shrink-0"
-          onClick={() => setTerminalMode(prev => prev === 'mini' ? 'expanded' : 'mini')}
+          className="flex items-center justify-between px-2 py-1 cursor-pointer"
+          style={{ height: '32px' }}
+          onClick={() => setTerminalMode(prev => prev === 'open' ? 'mini' : 'open')}
         >
           {/* Dot de estado */}
-          <div className={`w-2 h-2 rounded-full shrink-0 ${pendingAction ? 'bg-[#ff9800] animate-pulse' : 'bg-[#09D85D]'}`} />
-          
-          {/* Label */}
-          <span className="text-white text-[10px] font-bold font-mono shrink-0">TERMINAL</span>
+          <div className={`w-1.5 h-1.5 rounded-full ${pendingAction ? 'bg-[#ff9800] animate-pulse' : 'bg-[#09D85D]'}`} />
 
-          {/* Preview del último log (solo en mini) */}
-          {terminalMode === 'mini' && !pendingAction && (
-            <span className="text-white/50 text-[10px] truncate flex-1">
-              {terminalLogs.length > 0
-                ? terminalLogs[terminalLogs.length - 1].message
-                : 'Explora las comunidades...'}
+          {/* En mini: mostrar el último evento inline */}
+          {terminalMode === 'mini' && (
+            <span className="text-white/50 text-[9px] font-mono truncate mx-2 flex-1">
+              {pendingAction
+                ? pendingAction.community.name
+                : terminalLogs.length > 0
+                  ? terminalLogs[terminalLogs.length - 1].message
+                  : '...'}
             </span>
           )}
 
-          {/* Nombre de comunidad pendiente (solo en mini) */}
-          {terminalMode === 'mini' && pendingAction && (
-            <span className="text-[#ff9800] text-[10px] font-bold truncate flex-1">
-              {pendingAction.community.name}
+          <div className="flex items-center gap-1 ml-auto">
+            {/* Unirme en mini si hay pendingAction */}
+            {terminalMode === 'mini' && pendingAction && (
+              <a
+                href={pendingAction.community.whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="px-2 py-0.5 bg-[#25D366] text-white text-[8px] font-bold rounded"
+              >
+                Unirme
+              </a>
+            )}
+            {/* Toggle */}
+            <span className="text-white/40 text-[9px] px-1">
+              {terminalMode === 'open' ? '∨' : '∧'}
             </span>
-          )}
-
-          {/* Spacer */}
-          <div className="flex-1" />
-
-          {/* UNIRME en mini mode cuando hay acción pendiente */}
-          {terminalMode === 'mini' && pendingAction && (
-            <a
-              href={pendingAction.community.whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="shrink-0 px-3 py-1 bg-[#25D366] text-white text-[9px] font-bold rounded"
-            >
-              Unirme
-            </a>
-          )}
-
-          {/* Toggle arrow */}
-          <span className="text-white/60 text-[10px] shrink-0 ml-1">
-            {terminalMode === 'mini' ? '∧' : '∨'}
-          </span>
+          </div>
         </div>
 
-        {/* Body — solo visible en expanded */}
-        {terminalMode === 'expanded' && (
-          <>
-            {/* Logs */}
-            <div
-              ref={terminalRef}
-              className="overflow-y-auto p-2 font-mono text-[10px] space-y-1"
-              style={{ maxHeight: '120px' }}
-            >
-              {terminalLogs.slice(-6).map((log) => (
-                <div key={log.id} className="flex items-start gap-1.5">
-                  <span className="text-[#555] shrink-0 text-[9px]">
-                    {log.timestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  <span className={`flex-1 break-words ${
-                    log.type === 'discovery' ? 'text-[#09D85D]' :
-                    log.type === 'travel' ? 'text-[#00bcd4]' :
-                    log.type === 'info' ? 'text-[#777]' :
-                    'text-[#ff9800]'
-                  }`}>
-                    {log.message}
-                  </span>
-                </div>
-              ))}
-            </div>
+        {/* Logs — visibles cuando está open */}
+        {terminalMode === 'open' && (
+          <div
+            ref={terminalRef}
+            className="overflow-hidden px-2 pb-1 font-mono text-[9px] space-y-0.5"
+            style={{ height: '64px' }}
+          >
+            {terminalLogs.slice(-4).map((log) => (
+              <div key={log.id} className="flex items-start gap-1.5 leading-tight">
+                <span className="text-white/30 shrink-0 text-[8px] mt-px">
+                  {log.timestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <span className={`flex-1 truncate ${
+                  log.type === 'discovery' ? 'text-[#09D85D]' :
+                  log.type === 'travel' ? 'text-[#00bcd4]' :
+                  log.type === 'action' ? 'text-[#ff9800]' :
+                  'text-white/50'
+                }`}>
+                  {log.message}
+                </span>
+              </div>
+            ))}
 
-            {/* Acción pendiente: Unirme (en expanded) */}
+            {/* Si hay pendingAction, mostrar Unirme dentro del log */}
             {pendingAction && (
-              <div className="px-3 py-2 bg-[#0d1a0d] border-t border-[#1a2a1a] flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="shrink-0">{SPORT_EMOJI[pendingAction.community.sport]}</span>
-                  <div className="min-w-0">
-                    <p className="text-[#09D85D] text-[10px] font-bold truncate">{pendingAction.community.name}</p>
-                    <p className="text-[#666] text-[9px]">{pendingAction.community.members} miembros</p>
-                  </div>
-                </div>
+              <div className="flex items-center justify-between mt-0.5 pt-0.5 border-t border-white/10">
+                <span className="text-[#ff9800] text-[9px] truncate flex-1">
+                  {SPORT_EMOJI[pendingAction.community.sport]} {pendingAction.community.name}
+                </span>
                 <a
                   href={pendingAction.community.whatsapp}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="shrink-0 px-3 py-1.5 bg-[#25D366] text-white text-[9px] font-bold rounded"
+                  className="shrink-0 ml-2 px-2 py-0.5 bg-[#25D366] text-white text-[8px] font-bold rounded"
                 >
                   Unirme
                 </a>
               </div>
             )}
-
-            {/* Footer */}
-            <div className="px-2 py-1 bg-[#060a06] border-t border-[#1a2a1a] flex items-center gap-1">
-              <span className="text-[#09D85D] text-[10px]">$</span>
-              <span className="text-[#444] text-[10px] animate-pulse">_</span>
-            </div>
-          </>
+          </div>
         )}
-  </div>
+      </div>
 
       {/* Joystick (mobile) - al mismo nivel que terminal */}
       <div
