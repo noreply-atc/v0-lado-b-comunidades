@@ -39,31 +39,40 @@ const SPORT_EMOJI: Record<SportType, string> = {
   running: '🏃',
 };
 
+// World configuration - larger to fit provinces with proper spacing
+const TILE = 32;
+const WORLD_W = 70;
+const WORLD_H = 70;
+const WORLD_PX = WORLD_W * TILE;
+const WORLD_PY = WORLD_H * TILE;
+
+// Province grid: each province is 14x12 tiles, with 4-tile gaps between them
+// Arranged in a rough Argentina shape around center hub
 const PROVINCES: Province[] = [
   {
     id: 'caba',
     name: 'CABA',
     theme: 'urban',
     palette: { ground: '#4a4a5a', groundAlt: '#5a5a6a', path: '#6a6a7a', accent: '#ff6b35' },
-    description: 'Asfalto, jacarandás, palomas, adoquines porteños',
-    worldX: 28, worldY: 28,
+    description: 'Asfalto, jacarandas, palomas, adoquines porteños',
+    worldX: 38, worldY: 38, // Southeast of center
     communities: [
-      { id: 'caba-padel', name: 'Pádel Palermo', sport: 'padel', members: 340, whatsapp: 'https://chat.whatsapp.com/example1' },
-      { id: 'caba-futbol', name: 'Fútbol Caballito', sport: 'football', members: 280, whatsapp: 'https://chat.whatsapp.com/example2' },
+      { id: 'caba-padel', name: 'Padel Palermo', sport: 'padel', members: 340, whatsapp: 'https://chat.whatsapp.com/example1' },
+      { id: 'caba-futbol', name: 'Futbol Caballito', sport: 'football', members: 280, whatsapp: 'https://chat.whatsapp.com/example2' },
       { id: 'caba-tenis', name: 'Tenis Belgrano', sport: 'tennis', members: 95, whatsapp: 'https://chat.whatsapp.com/example3' },
     ]
   },
   {
     id: 'cordoba',
-    name: 'Córdoba',
+    name: 'Cordoba',
     theme: 'sierras',
     palette: { ground: '#5a7a3a', groundAlt: '#4a6a2a', path: '#c8a96e', accent: '#8bc34a' },
-    description: 'Quebrachos, cóndores, sierras rocosas, arroyos',
-    worldX: 20, worldY: 18,
+    description: 'Quebrachos, condores, sierras rocosas, arroyos',
+    worldX: 20, worldY: 20, // Northwest of center
     communities: [
-      { id: 'cba-padel', name: 'Pádel Sierras', sport: 'padel', members: 310, whatsapp: 'https://chat.whatsapp.com/example4' },
-      { id: 'cba-running', name: 'Running Córdoba', sport: 'running', members: 450, whatsapp: 'https://chat.whatsapp.com/example5' },
-      { id: 'cba-futbol', name: 'Fútbol Nueva Córdoba', sport: 'football', members: 190, whatsapp: 'https://chat.whatsapp.com/example6' },
+      { id: 'cba-padel', name: 'Padel Sierras', sport: 'padel', members: 310, whatsapp: 'https://chat.whatsapp.com/example4' },
+      { id: 'cba-running', name: 'Running Cordoba', sport: 'running', members: 450, whatsapp: 'https://chat.whatsapp.com/example5' },
+      { id: 'cba-futbol', name: 'Futbol Nueva Cordoba', sport: 'football', members: 190, whatsapp: 'https://chat.whatsapp.com/example6' },
     ]
   },
   {
@@ -71,12 +80,12 @@ const PROVINCES: Province[] = [
     name: 'Mendoza',
     theme: 'andes',
     palette: { ground: '#8a6a4a', groundAlt: '#9a7a5a', path: '#d4a96e', accent: '#9c27b0' },
-    description: 'Viñedos, Andes nevados, olivos, piedra y arena',
-    worldX: 8, worldY: 22,
+    description: 'Vinedos, Andes nevados, olivos, piedra y arena',
+    worldX: 4, worldY: 28, // West
     communities: [
       { id: 'mdz-ciclismo', name: 'Ciclismo Andino', sport: 'cycling', members: 220, whatsapp: 'https://chat.whatsapp.com/example7' },
-      { id: 'mdz-padel', name: 'Pádel Mendoza', sport: 'padel', members: 180, whatsapp: 'https://chat.whatsapp.com/example8' },
-      { id: 'mdz-ski', name: 'Esquí Las Leñas', sport: 'ski', members: 130, whatsapp: 'https://chat.whatsapp.com/example9' },
+      { id: 'mdz-padel', name: 'Padel Mendoza', sport: 'padel', members: 180, whatsapp: 'https://chat.whatsapp.com/example8' },
+      { id: 'mdz-ski', name: 'Esqui Las Lenas', sport: 'ski', members: 130, whatsapp: 'https://chat.whatsapp.com/example9' },
     ]
   },
   {
@@ -84,12 +93,12 @@ const PROVINCES: Province[] = [
     name: 'Patagonia',
     theme: 'patagonia',
     palette: { ground: '#2a4a6a', groundAlt: '#3a5a7a', path: '#8ab4d4', accent: '#00bcd4' },
-    description: 'Glaciares, lengas, cóndores, guanacos, viento',
-    worldX: 10, worldY: 42,
+    description: 'Glaciares, lengas, condores, guanacos, viento',
+    worldX: 20, worldY: 54, // South
     communities: [
       { id: 'pat-trekking', name: 'Trekking Bariloche', sport: 'trekking', members: 380, whatsapp: 'https://chat.whatsapp.com/example10' },
       { id: 'pat-remo', name: 'Remo Nahuel Huapi', sport: 'rowing', members: 90, whatsapp: 'https://chat.whatsapp.com/example11' },
-      { id: 'pat-padel', name: 'Pádel Sur', sport: 'padel', members: 140, whatsapp: 'https://chat.whatsapp.com/example12' },
+      { id: 'pat-padel', name: 'Padel Sur', sport: 'padel', members: 140, whatsapp: 'https://chat.whatsapp.com/example12' },
     ]
   },
   {
@@ -98,9 +107,9 @@ const PROVINCES: Province[] = [
     theme: 'noa',
     palette: { ground: '#8a5a2a', groundAlt: '#9a6a3a', path: '#d4956e', accent: '#ff9800' },
     description: 'Cardones, llamas, Quebrada de Humahuaca, terracota',
-    worldX: 12, worldY: 6,
+    worldX: 20, worldY: 4, // North
     communities: [
-      { id: 'noa-futbol', name: 'Fútbol Jujuy', sport: 'football', members: 260, whatsapp: 'https://chat.whatsapp.com/example13' },
+      { id: 'noa-futbol', name: 'Futbol Jujuy', sport: 'football', members: 260, whatsapp: 'https://chat.whatsapp.com/example13' },
       { id: 'noa-tenis', name: 'Tenis Salta', sport: 'tennis', members: 110, whatsapp: 'https://chat.whatsapp.com/example14' },
       { id: 'noa-running', name: 'Running Altiplano', sport: 'running', members: 195, whatsapp: 'https://chat.whatsapp.com/example15' },
     ]
@@ -110,12 +119,12 @@ const PROVINCES: Province[] = [
     name: 'Litoral',
     theme: 'litoral',
     palette: { ground: '#3a6a3a', groundAlt: '#4a7a4a', path: '#8ab46e', accent: '#4caf50' },
-    description: 'Yerba mate, palmeras, carpinchos, río Paraná',
-    worldX: 36, worldY: 12,
+    description: 'Yerba mate, palmeras, carpinchos, rio Parana',
+    worldX: 52, worldY: 18, // Northeast
     communities: [
-      { id: 'lit-remo', name: 'Remo Paraná', sport: 'rowing', members: 160, whatsapp: 'https://chat.whatsapp.com/example16' },
-      { id: 'lit-futbol', name: 'Fútbol Rosario', sport: 'football', members: 420, whatsapp: 'https://chat.whatsapp.com/example17' },
-      { id: 'lit-padel', name: 'Pádel Entre Ríos', sport: 'padel', members: 230, whatsapp: 'https://chat.whatsapp.com/example18' },
+      { id: 'lit-remo', name: 'Remo Parana', sport: 'rowing', members: 160, whatsapp: 'https://chat.whatsapp.com/example16' },
+      { id: 'lit-futbol', name: 'Futbol Rosario', sport: 'football', members: 420, whatsapp: 'https://chat.whatsapp.com/example17' },
+      { id: 'lit-padel', name: 'Padel Entre Rios', sport: 'padel', members: 230, whatsapp: 'https://chat.whatsapp.com/example18' },
     ]
   },
   {
@@ -124,10 +133,10 @@ const PROVINCES: Province[] = [
     theme: 'pampas',
     palette: { ground: '#6a8a3a', groundAlt: '#7a9a4a', path: '#c8b46e', accent: '#cddc39' },
     description: 'Llanuras infinitas, estancias, caballos, pasto pampeano',
-    worldX: 28, worldY: 18,
+    worldX: 38, worldY: 20, // East of center
     communities: [
       { id: 'pam-polo', name: 'Polo Buenos Aires', sport: 'polo', members: 85, whatsapp: 'https://chat.whatsapp.com/example21' },
-      { id: 'pam-padel', name: 'Pádel La Plata', sport: 'padel', members: 270, whatsapp: 'https://chat.whatsapp.com/example22' },
+      { id: 'pam-padel', name: 'Padel La Plata', sport: 'padel', members: 270, whatsapp: 'https://chat.whatsapp.com/example22' },
       { id: 'pam-running', name: 'Running Pampeano', sport: 'running', members: 310, whatsapp: 'https://chat.whatsapp.com/example23' },
     ]
   },
@@ -136,25 +145,25 @@ const PROVINCES: Province[] = [
     name: 'Noreste',
     theme: 'noreste',
     palette: { ground: '#2a6a2a', groundAlt: '#1a5a1a', path: '#6ab46a', accent: '#00e676' },
-    description: 'Selva misionera, tucanes, Cataratas del Iguazú',
-    worldX: 40, worldY: 6,
+    description: 'Selva misionera, tucanes, Cataratas del Iguazu',
+    worldX: 52, worldY: 4, // Far northeast
     communities: [
-      { id: 'ne-futbol', name: 'Fútbol Misiones', sport: 'football', members: 290, whatsapp: 'https://chat.whatsapp.com/example24' },
+      { id: 'ne-futbol', name: 'Futbol Misiones', sport: 'football', members: 290, whatsapp: 'https://chat.whatsapp.com/example24' },
       { id: 'ne-tenis', name: 'Tenis Posadas', sport: 'tennis', members: 75, whatsapp: 'https://chat.whatsapp.com/example25' },
-      { id: 'ne-kayak', name: 'Kayak Iguazú', sport: 'kayak', members: 120, whatsapp: 'https://chat.whatsapp.com/example26' },
+      { id: 'ne-kayak', name: 'Kayak Iguazu', sport: 'kayak', members: 120, whatsapp: 'https://chat.whatsapp.com/example26' },
     ]
   },
   {
     id: 'neuquen',
-    name: 'Neuquén',
+    name: 'Neuquen',
     theme: 'neuquen',
     palette: { ground: '#4a6a5a', groundAlt: '#3a5a4a', path: '#8ab4a4', accent: '#26a69a' },
     description: 'Araucarias, volcanes, termas, lagos color turquesa',
-    worldX: 12, worldY: 35,
+    worldX: 4, worldY: 46, // Southwest
     communities: [
-      { id: 'nqn-ski', name: 'Esquí Chapelco', sport: 'ski', members: 200, whatsapp: 'https://chat.whatsapp.com/example27' },
-      { id: 'nqn-padel', name: 'Pádel Neuquén', sport: 'padel', members: 165, whatsapp: 'https://chat.whatsapp.com/example28' },
-      { id: 'nqn-trekking', name: 'Trekking Lanín', sport: 'trekking', members: 240, whatsapp: 'https://chat.whatsapp.com/example29' },
+      { id: 'nqn-ski', name: 'Esqui Chapelco', sport: 'ski', members: 200, whatsapp: 'https://chat.whatsapp.com/example27' },
+      { id: 'nqn-padel', name: 'Padel Neuquen', sport: 'padel', members: 165, whatsapp: 'https://chat.whatsapp.com/example28' },
+      { id: 'nqn-trekking', name: 'Trekking Lanin', sport: 'trekking', members: 240, whatsapp: 'https://chat.whatsapp.com/example29' },
     ]
   },
   {
@@ -162,11 +171,11 @@ const PROVINCES: Province[] = [
     name: 'Cuyo',
     theme: 'cuyo',
     palette: { ground: '#9a7a4a', groundAlt: '#aa8a5a', path: '#c8a96e', accent: '#795548' },
-    description: 'Olivos, desierto, montañas rocosas, cielo azul intenso',
-    worldX: 6, worldY: 30,
+    description: 'Olivos, desierto, montanas rocosas, cielo azul intenso',
+    worldX: 4, worldY: 10, // Northwest corner
     communities: [
-      { id: 'cuyo-padel', name: 'Pádel San Juan', sport: 'padel', members: 150, whatsapp: 'https://chat.whatsapp.com/example19' },
-      { id: 'cuyo-futbol', name: 'Fútbol San Luis', sport: 'football', members: 200, whatsapp: 'https://chat.whatsapp.com/example20' },
+      { id: 'cuyo-padel', name: 'Padel San Juan', sport: 'padel', members: 150, whatsapp: 'https://chat.whatsapp.com/example19' },
+      { id: 'cuyo-futbol', name: 'Futbol San Luis', sport: 'football', members: 200, whatsapp: 'https://chat.whatsapp.com/example20' },
       { id: 'cuyo-ciclismo', name: 'Ciclismo Cuyo', sport: 'cycling', members: 175, whatsapp: 'https://chat.whatsapp.com/example30' },
     ]
   },
@@ -182,11 +191,7 @@ interface Building {
   h: number;
 }
 
-const TILE = 32;
-const WORLD_W = 52;
-const WORLD_H = 52;
-const WORLD_PX = WORLD_W * TILE;
-const WORLD_PY = WORLD_H * TILE;
+// Constants moved above PROVINCES definition
 
 // Build all buildings from provinces with proper grid layout
 function generateBuildings(): Building[] {
@@ -231,10 +236,11 @@ export default function GamePage() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   
-  // Game state refs
+  // Game state refs - spawn on the main road OUTSIDE the stadium
+  // World center is at 35*32 = 1120, stadium is at 32-38, so spawn at 40*32
   const playerRef = useRef({
-    x: WORLD_PX / 2,
-    y: WORLD_PY / 2,
+    x: 40 * TILE, // Spawn east of stadium on the main road
+    y: 35 * TILE, // Center Y
     w: 16,
     h: 20,
     speed: 2.5,
@@ -317,10 +323,10 @@ export default function GamePage() {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
-    // Stadium center
+    // Stadium center - positioned in the middle of the 70x70 world
     const STADIUM = {
-      x: 24,
-      y: 24,
+      x: 32, // Center of 70-tile world
+      y: 32,
       w: 6,
       h: 6,
     };
@@ -1174,104 +1180,181 @@ export default function GamePage() {
       </button>
 
       {/* Fast Travel Map - IMPROVED DESIGN */}
-      {showMap && (
-        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 animate-in fade-in duration-200">
-          {/* Dark overlay */}
-          <div className="absolute inset-0 bg-[#0a0a0a]/95" onClick={() => setShowMap(false)} />
-          
-          {/* Map container */}
-          <div className="relative z-10 w-full max-w-lg bg-[#111] border-2 border-[#00564B] rounded-xl overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-[#00564B]">
-              <h2 className="text-white text-sm font-bold tracking-widest uppercase">
-                Mapa de Argentina
-              </h2>
-              <button
-                onClick={() => setShowMap(false)}
-                className="text-white hover:text-[#09D85D] transition-colors text-xl leading-none"
-              >
-                x
-              </button>
-            </div>
-            
-            {/* Map area */}
-            <div className="relative p-4 bg-[#1a1a1a]">
-              <p className="text-[#666] text-xs text-center mb-4">Selecciona una provincia para viajar</p>
-              
-              {/* Argentina shape approximation with provinces */}
-              <div className="relative w-full aspect-[3/4] mx-auto max-w-[320px]">
-                {/* Background shape hint */}
-                <div className="absolute inset-0 opacity-10">
-                  <svg viewBox="0 0 100 130" className="w-full h-full">
-                    <path 
-                      d="M35 5 L65 5 L75 15 L80 35 L75 55 L70 75 L65 95 L55 115 L45 125 L40 115 L35 95 L30 75 L25 55 L20 35 L25 15 Z" 
-                      fill="#00564B"
-                    />
-                  </svg>
-                </div>
-                
-                {/* Province buttons */}
-                {PROVINCES.map((province) => {
-                  const discovered = province.communities.some(c => discoveredRef.current.has(c.id));
-                  const discoveredInProvince = province.communities.filter(c => discoveredRef.current.has(c.id)).length;
-                  
-                  const positions: Record<string, { top: string; left: string }> = {
-                    noa: { top: '8%', left: '40%' },
-                    noreste: { top: '12%', left: '72%' },
-                    cuyo: { top: '42%', left: '22%' },
-                    mendoza: { top: '35%', left: '12%' },
-                    cordoba: { top: '30%', left: '50%' },
-                    litoral: { top: '22%', left: '68%' },
-                    pampas: { top: '45%', left: '55%' },
-                    caba: { top: '52%', left: '72%' },
-                    neuquen: { top: '60%', left: '28%' },
-                    patagonia: { top: '80%', left: '40%' },
-                  };
-                  const pos = positions[province.id] || { top: '50%', left: '50%' };
-
-                  return (
-                    <button
-                      key={province.id}
-                      onClick={() => handleFastTravel(province)}
-                      className="absolute transform -translate-x-1/2 -translate-y-1/2 px-3 py-2 rounded-lg transition-all duration-200 hover:scale-110 hover:z-10 min-w-[80px]"
-                      style={{
-                        top: pos.top,
-                        left: pos.left,
-                        backgroundColor: '#1a1a1a',
-                        border: `2px solid ${discovered ? '#09D85D' : province.palette.accent}`,
-                        boxShadow: discovered ? '0 0 8px #09D85D44' : 'none',
-                      }}
-                    >
-                      <div 
-                        className="font-bold text-xs"
-                        style={{ color: discovered ? '#09D85D' : province.palette.accent }}
-                      >
-                        {province.name}
-                      </div>
-                      <div className="text-[#666] text-[10px]">
-                        {discoveredInProvince}/{province.communities.length}
-                      </div>
-                    </button>
-                  );
-                })}
-                
-                {/* Center hub indicator */}
-                <div 
-                  className="absolute transform -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#00564B] border-2 border-[#09D85D] flex items-center justify-center"
-                  style={{ top: '48%', left: '50%' }}
+{showMap && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    {/* Solid dark overlay */}
+    <div 
+      className="absolute inset-0 bg-[#0a0f0a]" 
+      onClick={() => setShowMap(false)} 
+    />
+    
+    {/* Map container */}
+    <div className="relative z-10 w-full max-w-md bg-[#0d1210] border-2 border-[#00564B] rounded-xl shadow-2xl overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 bg-[#00564B]">
+        <div>
+          <h2 className="text-white text-base font-bold tracking-wide">
+            ARGENTINA
+          </h2>
+          <p className="text-[#88ccaa] text-xs">Selecciona tu destino</p>
+        </div>
+        <button
+          onClick={() => setShowMap(false)}
+          className="w-8 h-8 flex items-center justify-center rounded-full bg-[#004038] text-white hover:bg-[#003530] transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      
+      {/* Map grid area */}
+      <div className="p-5 bg-[#0d1210]">
+        {/* Province grid - organized by region */}
+        <div className="grid gap-2">
+          {/* Norte */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="text-[#666] text-[10px] uppercase tracking-wider col-span-2 mb-1">Norte</div>
+            {PROVINCES.filter(p => ['noa', 'noreste'].includes(p.id)).map((province) => {
+              const discoveredInProvince = province.communities.filter(c => discoveredRef.current.has(c.id)).length;
+              const allDiscovered = discoveredInProvince === province.communities.length;
+              return (
+                <button
+                  key={province.id}
+                  onClick={() => handleFastTravel(province)}
+                  className="flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-150 hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: '#141a18',
+                    border: `2px solid ${allDiscovered ? '#09D85D' : province.palette.accent}40`,
+                  }}
                 >
-                  <span className="text-[#09D85D] text-[8px] font-bold">HUB</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Footer */}
-            <div className="px-4 py-3 bg-[#111] border-t border-[#333] text-center">
-              <p className="text-[#666] text-xs">Presiona M o clickea afuera para cerrar</p>
-            </div>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: province.palette.accent }}
+                    />
+                    <span className="text-white text-sm font-medium">{province.name}</span>
+                  </div>
+                  <span className={`text-xs ${allDiscovered ? 'text-[#09D85D]' : 'text-[#666]'}`}>
+                    {discoveredInProvince}/{province.communities.length}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Centro */}
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <div className="text-[#666] text-[10px] uppercase tracking-wider col-span-2 mb-1">Centro</div>
+            {PROVINCES.filter(p => ['cordoba', 'litoral', 'pampas', 'caba'].includes(p.id)).map((province) => {
+              const discoveredInProvince = province.communities.filter(c => discoveredRef.current.has(c.id)).length;
+              const allDiscovered = discoveredInProvince === province.communities.length;
+              return (
+                <button
+                  key={province.id}
+                  onClick={() => handleFastTravel(province)}
+                  className="flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-150 hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: '#141a18',
+                    border: `2px solid ${allDiscovered ? '#09D85D' : province.palette.accent}40`,
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: province.palette.accent }}
+                    />
+                    <span className="text-white text-sm font-medium">{province.name}</span>
+                  </div>
+                  <span className={`text-xs ${allDiscovered ? 'text-[#09D85D]' : 'text-[#666]'}`}>
+                    {discoveredInProvince}/{province.communities.length}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Cuyo y Oeste */}
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <div className="text-[#666] text-[10px] uppercase tracking-wider col-span-2 mb-1">Oeste</div>
+            {PROVINCES.filter(p => ['mendoza', 'cuyo'].includes(p.id)).map((province) => {
+              const discoveredInProvince = province.communities.filter(c => discoveredRef.current.has(c.id)).length;
+              const allDiscovered = discoveredInProvince === province.communities.length;
+              return (
+                <button
+                  key={province.id}
+                  onClick={() => handleFastTravel(province)}
+                  className="flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-150 hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: '#141a18',
+                    border: `2px solid ${allDiscovered ? '#09D85D' : province.palette.accent}40`,
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: province.palette.accent }}
+                    />
+                    <span className="text-white text-sm font-medium">{province.name}</span>
+                  </div>
+                  <span className={`text-xs ${allDiscovered ? 'text-[#09D85D]' : 'text-[#666]'}`}>
+                    {discoveredInProvince}/{province.communities.length}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Sur */}
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <div className="text-[#666] text-[10px] uppercase tracking-wider col-span-2 mb-1">Sur</div>
+            {PROVINCES.filter(p => ['neuquen', 'patagonia'].includes(p.id)).map((province) => {
+              const discoveredInProvince = province.communities.filter(c => discoveredRef.current.has(c.id)).length;
+              const allDiscovered = discoveredInProvince === province.communities.length;
+              return (
+                <button
+                  key={province.id}
+                  onClick={() => handleFastTravel(province)}
+                  className="flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-150 hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: '#141a18',
+                    border: `2px solid ${allDiscovered ? '#09D85D' : province.palette.accent}40`,
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: province.palette.accent }}
+                    />
+                    <span className="text-white text-sm font-medium">{province.name}</span>
+                  </div>
+                  <span className={`text-xs ${allDiscovered ? 'text-[#09D85D]' : 'text-[#666]'}`}>
+                    {discoveredInProvince}/{province.communities.length}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
-      )}
+
+        {/* Progress summary */}
+        <div className="mt-4 pt-4 border-t border-[#222]">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-[#888]">Comunidades descubiertas</span>
+            <span className="text-[#09D85D] font-bold">{discoveredCount}/30</span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Footer */}
+      <div className="px-5 py-3 bg-[#0a0f0a] border-t border-[#1a1a1a] flex items-center justify-center gap-4">
+        <span className="text-[#555] text-xs">Presiona</span>
+        <kbd className="px-2 py-1 bg-[#1a1a1a] text-[#888] text-xs rounded border border-[#333]">M</kbd>
+        <span className="text-[#555] text-xs">para cerrar</span>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
