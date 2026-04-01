@@ -188,19 +188,28 @@ const WORLD_H = 52;
 const WORLD_PX = WORLD_W * TILE;
 const WORLD_PY = WORLD_H * TILE;
 
-// Build all buildings from provinces
+// Build all buildings from provinces with proper grid layout
 function generateBuildings(): Building[] {
   const buildings: Building[] = [];
   
   PROVINCES.forEach(province => {
+    // Layout de 3 comunidades en L dentro de la provincia con calles entre ellas
+    const layouts = [
+      { col: 0, row: 0 },  // top-left block
+      { col: 1, row: 0 },  // top-right block  
+      { col: 0, row: 1 },  // bottom-left block
+    ];
+    
     province.communities.forEach((community, idx) => {
-      const offsetX = (idx % 2) * 7;
-      const offsetY = Math.floor(idx / 2) * 6;
+      const layout = layouts[idx] || { col: idx % 2, row: Math.floor(idx / 2) };
+      // Building size: 5w x 4h tiles, with 2-tile street gap between them, 1-tile margin from province edge
+      const buildingX = province.worldX + 1 + layout.col * 7; // 5 building + 2 street
+      const buildingY = province.worldY + 1 + layout.row * 6; // 4 building + 2 street
       buildings.push({
         community,
         province,
-        x: province.worldX + offsetX,
-        y: province.worldY + offsetY,
+        x: buildingX,
+        y: buildingY,
         w: 5,
         h: 4,
       });
@@ -314,15 +323,6 @@ export default function GamePage() {
       y: 24,
       w: 6,
       h: 6,
-    };
-
-    // Drawing helpers
-    const shadeColor = (hex: string, amt: number): string => {
-      const n = parseInt(hex.replace('#', ''), 16);
-      const r = Math.min(255, Math.max(0, (n >> 16) + amt));
-      const g = Math.min(255, Math.max(0, ((n >> 8) & 0xff) + amt));
-      const b = Math.min(255, Math.max(0, (n & 0xff) + amt));
-      return `rgb(${r},${g},${b})`;
     };
 
     // Draw sport-specific building design
@@ -593,6 +593,121 @@ export default function GamePage() {
       }
     };
 
+    // Draw province streets
+    const drawProvinceStreets = (province: Province, camX: number, camY: number) => {
+      const px = province.worldX * TILE - camX;
+      const py = province.worldY * TILE - camY;
+      const pw = 14 * TILE;
+      const ph = 12 * TILE;
+      
+      // Skip if out of viewport
+      if (px > canvas.width + 64 || px + pw < -64 || py > canvas.height + 64 || py + ph < -64) return;
+      
+      const { path, accent } = province.palette;
+      
+      // === PROVINCE BORDER (subtle) ===
+      ctx.strokeStyle = accent + '44';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(px, py, pw, ph);
+      
+      // === MAIN INTERNAL STREETS ===
+      // Horizontal street at row 5 (middle-ish)
+      ctx.fillStyle = path;
+      ctx.fillRect(px, py + 5 * TILE, pw, 2 * TILE);
+      
+      // Vertical street at col 6 (middle)
+      ctx.fillRect(px + 6 * TILE, py, 2 * TILE, ph);
+      
+      // === STREET DETAILS (sidewalk lines) ===
+      ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px, py + 5 * TILE, pw, 2 * TILE);
+      
+      // === PROVINCE NAME SIGN (entrada) ===
+      ctx.fillStyle = accent;
+      ctx.fillRect(px + 6 * TILE + 4, py + 2, 56, 18);
+      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(province.name.toUpperCase(), px + 6 * TILE + 32, py + 15);
+      
+      // === THEME-SPECIFIC STREET DECORATIONS ===
+      switch (province.theme) {
+        case 'urban':
+          // Crosswalk stripes at intersection
+          ctx.fillStyle = 'rgba(255,255,255,0.6)';
+          for (let i = 0; i < 5; i++) {
+            ctx.fillRect(px + 6 * TILE, py + 5 * TILE + 4 + i * 7, 2 * TILE, 4);
+          }
+          // Street lamps at corners of intersection
+          [[0,0],[1,0],[0,1],[1,1]].forEach(([c,r]) => {
+            const lx = px + (6 + c * 2) * TILE - 4;
+            const ly = py + (5 + r * 2) * TILE - 4;
+            ctx.fillStyle = '#3a3a4a';
+            ctx.fillRect(lx, ly, 3, 20);
+            ctx.fillStyle = '#ffdd88aa';
+            ctx.fillRect(lx - 3, ly, 9, 5);
+          });
+          break;
+          
+        case 'noa':
+          // Colored arches / adobe style street markers
+          ctx.fillStyle = accent + '88';
+          ctx.fillRect(px + 5 * TILE, py + 5 * TILE - 8, 4 * TILE, 8);
+          // Patterned border
+          for (let i = 0; i < 7; i++) {
+            ctx.fillStyle = i % 2 === 0 ? '#cc4400' : '#ffaa00';
+            ctx.fillRect(px + (i * 2) * TILE, py, 2 * TILE, 4);
+          }
+          break;
+          
+        case 'patagonia':
+        case 'neuquen':
+          // Dirt path style (dots/gravel)
+          ctx.fillStyle = 'rgba(180,160,130,0.4)';
+          for (let i = 0; i < pw / 8; i++) {
+            ctx.fillRect(px + i * 8 + 2, py + 5 * TILE + 12, 4, 4);
+            ctx.fillRect(px + i * 8 + 2, py + 6 * TILE + 4, 4, 4);
+          }
+          break;
+          
+        case 'litoral':
+        case 'noreste':
+          // Dirt path with flower dots on sides
+          const flowerColors = ['#ff6b6b', '#ffd93d', '#ff8c42'];
+          for (let i = 0; i < 8; i++) {
+            ctx.fillStyle = flowerColors[i % 3];
+            ctx.beginPath();
+            ctx.arc(px + i * (pw/8) + 16, py + 5 * TILE - 8, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(px + i * (pw/8) + 16, py + 7 * TILE + 8, 4, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          break;
+          
+        case 'sierras':
+        case 'andes':
+        case 'cuyo':
+          // Rocky path edges
+          ctx.fillStyle = 'rgba(150,130,100,0.5)';
+          for (let i = 0; i < 6; i++) {
+            ctx.fillRect(px + i * (pw/6) + 4, py + 5 * TILE - 5, 8, 4);
+            ctx.fillRect(px + i * (pw/6) + 4, py + 7 * TILE + 2, 8, 4);
+          }
+          break;
+          
+        case 'pampas':
+          // Wide open path, fence posts
+          ctx.fillStyle = '#8a6a4a';
+          for (let i = 0; i < pw / TILE; i++) {
+            ctx.fillRect(px + i * TILE + 14, py + 5 * TILE - 6, 4, 10);
+            ctx.fillRect(px + i * TILE + 14, py + 7 * TILE - 4, 4, 10);
+          }
+          break;
+      }
+    };
+
     // Draw player
     const drawPlayer = (px: number, py: number) => {
       const player = playerRef.current;
@@ -740,6 +855,9 @@ export default function GamePage() {
       ctx.fillRect(-cx, centerY - pathW/2, WORLD_PX, pathW);
       ctx.fillRect(centerX - pathW/2, -cy, pathW, WORLD_PY);
 
+      // Draw province streets BEFORE buildings
+      PROVINCES.forEach(p => drawProvinceStreets(p, cx, cy));
+
       // Draw stadium
       drawStadium(cx, cy);
 
@@ -770,21 +888,23 @@ export default function GamePage() {
       });
     };
 
-    // Collision check
+    // Collision check with padding to prevent edge-sticking
     const collidesWithBuilding = (nx: number, ny: number): boolean => {
-      // Stadium collision
-      const sx1 = STADIUM.x * TILE - 8;
-      const sy1 = STADIUM.y * TILE - 8;
-      const sx2 = (STADIUM.x + STADIUM.w) * TILE + 8;
-      const sy2 = (STADIUM.y + STADIUM.h) * TILE + 8;
+      const pad = 6; // pixels of padding
+      
+      // Stadium collision with padding
+      const sx1 = STADIUM.x * TILE + pad;
+      const sy1 = STADIUM.y * TILE + pad;
+      const sx2 = (STADIUM.x + STADIUM.w) * TILE - pad;
+      const sy2 = (STADIUM.y + STADIUM.h) * TILE - pad;
       if (nx > sx1 && nx < sx2 && ny > sy1 && ny < sy2) return true;
 
-      // Buildings collision
+      // Buildings collision with padding
       for (const b of buildingsRef.current) {
-        const bx1 = b.x * TILE + 4;
-        const by1 = b.y * TILE + 4;
-        const bx2 = (b.x + b.w) * TILE - 4;
-        const by2 = (b.y + b.h) * TILE - 4;
+        const bx1 = b.x * TILE + pad;
+        const by1 = b.y * TILE + pad;
+        const bx2 = (b.x + b.w) * TILE - pad;
+        const by2 = (b.y + b.h) * TILE - pad;
         if (nx > bx1 && nx < bx2 && ny > by1 && ny < by2) return true;
       }
       return false;
@@ -831,7 +951,7 @@ export default function GamePage() {
       setCurrentCommunity(null);
     };
 
-    // Update
+    // Update with wall sliding
     const update = () => {
       const player = playerRef.current;
       const cam = camRef.current;
@@ -881,14 +1001,16 @@ export default function GamePage() {
       }
 
       const spd = player.speed;
-      const nx = player.x + dx * spd;
-      const ny = player.y + dy * spd;
+      
+      // Slide along walls - check X and Y independently
+      const newX = player.x + dx * spd;
+      const newY = player.y + dy * spd;
 
-      if (nx > 16 && nx < WORLD_PX - 16 && !collidesWithBuilding(nx, player.y)) {
-        player.x = nx;
+      if (!collidesWithBuilding(newX, player.y) && newX > 16 && newX < WORLD_PX - 16) {
+        player.x = newX;
       }
-      if (ny > 16 && ny < WORLD_PY - 16 && !collidesWithBuilding(player.x, ny)) {
-        player.y = ny;
+      if (!collidesWithBuilding(player.x, newY) && newY > 16 && newY < WORLD_PY - 16) {
+        player.y = newY;
       }
 
       player.moving = len > 0.1;
@@ -960,34 +1082,14 @@ export default function GamePage() {
     };
   }, [getProvinceAt, currentProvince, showToastMessage]);
 
-  // Joystick handlers
-  const handleJoystickMove = useCallback((clientX: number, clientY: number, rect: DOMRect) => {
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const ox = clientX - centerX;
-    const oy = clientY - centerY;
-    const dist = Math.sqrt(ox * ox + oy * oy);
-    const maxDist = 28;
-    const clamped = Math.min(dist, maxDist);
-    const angle = Math.atan2(oy, ox);
-    
-    joyRef.current.dx = Math.cos(angle) * clamped / maxDist;
-    joyRef.current.dy = Math.sin(angle) * clamped / maxDist;
-    
-    return {
-      x: Math.cos(angle) * clamped,
-      y: Math.sin(angle) * clamped
-    };
-  }, []);
-
   // Calculate total communities
   const totalCommunities = PROVINCES.reduce((acc, p) => acc + p.communities.length, 0);
 
   return (
-    <div className="fixed inset-0 bg-[#0a0a0a] overflow-hidden font-mono touch-none select-none">
+    <div className="fixed inset-0 bg-[#0a0a0a] overflow-hidden font-sans touch-none select-none">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-2 bg-black/85 border-b-2 border-[#00ff88]">
-        <h1 className="text-[#00ff88] text-sm tracking-widest uppercase font-bold flex items-center gap-2">
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-2 bg-black/85 border-b-2 border-[#00564B]">
+        <h1 className="text-[#09D85D] text-sm tracking-widest uppercase font-bold flex items-center gap-2">
           <span className="text-lg">⬡</span> ATC Campus
         </h1>
         <div className="flex items-center gap-3">
@@ -999,12 +1101,12 @@ export default function GamePage() {
               {currentProvince.name}
             </span>
           )}
-          <span className="text-[#00ff88] text-xs bg-[#00ff8820] border border-[#00ff88] px-3 py-1 rounded">
+          <span className="text-[#09D85D] text-xs bg-[#09D85D20] border border-[#09D85D] px-3 py-1 rounded">
             {discoveredCount}/{totalCommunities} explorado
           </span>
           <button
             onClick={() => setShowMap(true)}
-            className="text-[#00ff88] text-xs bg-[#00ff8820] border border-[#00ff88] px-3 py-1 rounded hover:bg-[#00ff8840] transition-colors"
+            className="text-[#09D85D] text-xs bg-[#09D85D20] border border-[#09D85D] px-3 py-1 rounded hover:bg-[#09D85D40] transition-colors"
           >
             MAPA
           </button>
@@ -1016,14 +1118,14 @@ export default function GamePage() {
 
       {/* Community Popup */}
       {currentCommunity && currentProvince && (
-        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 bg-[#0a0a0aee] border-2 border-[#00ff88] rounded-lg p-4 min-w-[240px] text-center animate-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 bg-[#0a0a0aee] border-2 border-[#09D85D] rounded-lg p-4 min-w-[240px] text-center animate-in slide-in-from-bottom-4 duration-300">
           <span 
             className="inline-block text-xs px-2 py-0.5 rounded mb-2"
             style={{ backgroundColor: currentProvince.palette.accent, color: '#fff' }}
           >
             {currentProvince.name}
           </span>
-          <h3 className="text-[#00ff88] text-sm font-bold tracking-wide mb-1">
+          <h3 className="text-[#09D85D] text-sm font-bold tracking-wide mb-1">
             {SPORT_EMOJI[currentCommunity.sport]} {currentCommunity.name}
           </h3>
           <p className="text-[#aaa] text-xs mb-3">{currentCommunity.members} jugadores activos</p>
@@ -1031,16 +1133,16 @@ export default function GamePage() {
             href={currentCommunity.whatsapp}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block bg-[#00ff88] text-black font-bold text-xs px-4 py-2 rounded tracking-wide hover:bg-[#00dd77] transition-colors"
+            className="inline-block bg-[#09D85D] text-black font-bold text-xs px-4 py-2 rounded tracking-wide hover:bg-[#07c050] transition-colors"
           >
-            UNIRSE AL GRUPO →
+            UNIRSE AL GRUPO
           </a>
         </div>
       )}
 
       {/* Toast */}
       {showToast && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-[#00ff88] text-black font-bold text-sm px-4 py-2 rounded animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-[#09D85D] text-black font-bold text-sm px-4 py-2 rounded animate-in fade-in slide-in-from-top-2 duration-200">
           {toastMessage}
         </div>
       )}
@@ -1048,7 +1150,7 @@ export default function GamePage() {
       {/* Hint */}
       {showHint && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 text-[#aaa] text-xs text-center animate-in fade-in duration-500">
-          Usá el joystick para moverte · Acercate a un club para descubrirlo · Presioná M para el mapa
+          Usa el joystick para moverte - Acercate a un club para descubrirlo - Presiona M para el mapa
         </div>
       )}
 
@@ -1066,60 +1168,108 @@ export default function GamePage() {
             window.open(currentCommunity.whatsapp, '_blank');
           }
         }}
-        className="fixed bottom-11 right-8 w-14 h-14 rounded-full bg-[#00ff8826] border-2 border-[#00ff88] text-[#00ff88] font-bold text-lg z-50 active:scale-95 transition-transform"
+        className="fixed bottom-11 right-8 w-14 h-14 rounded-full bg-[#09D85D26] border-2 border-[#09D85D] text-[#09D85D] font-bold text-lg z-50 active:scale-95 transition-transform"
       >
         A
       </button>
 
-      {/* Fast Travel Map */}
+      {/* Fast Travel Map - IMPROVED DESIGN */}
       {showMap && (
-        <div className="fixed inset-0 z-[100] bg-[#0a0a0aee] flex flex-col items-center justify-center p-4 animate-in fade-in duration-200">
-          <button
-            onClick={() => setShowMap(false)}
-            className="absolute top-4 right-4 text-[#00ff88] text-2xl hover:text-white transition-colors"
-          >
-            ✕
-          </button>
-          <h2 className="text-[#00ff88] text-lg font-bold tracking-widest mb-6 uppercase">
-            Argentina — Seleccioná tu destino
-          </h2>
-          <div className="relative w-full max-w-md aspect-[3/4]">
-            {/* Map layout approximating Argentina shape */}
-            {PROVINCES.map((province) => {
-              const discovered = province.communities.some(c => discoveredRef.current.has(c.id));
-              const positions: Record<string, { top: string; left: string }> = {
-                noa: { top: '5%', left: '30%' },
-                noreste: { top: '8%', left: '70%' },
-                cuyo: { top: '35%', left: '15%' },
-                mendoza: { top: '28%', left: '8%' },
-                cordoba: { top: '25%', left: '45%' },
-                litoral: { top: '20%', left: '75%' },
-                pampas: { top: '40%', left: '55%' },
-                caba: { top: '50%', left: '70%' },
-                neuquen: { top: '55%', left: '25%' },
-                patagonia: { top: '75%', left: '35%' },
-              };
-              const pos = positions[province.id] || { top: '50%', left: '50%' };
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 animate-in fade-in duration-200">
+          {/* Dark overlay */}
+          <div className="absolute inset-0 bg-[#0a0a0a]/95" onClick={() => setShowMap(false)} />
+          
+          {/* Map container */}
+          <div className="relative z-10 w-full max-w-lg bg-[#111] border-2 border-[#00564B] rounded-xl overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 bg-[#00564B]">
+              <h2 className="text-white text-sm font-bold tracking-widest uppercase">
+                Mapa de Argentina
+              </h2>
+              <button
+                onClick={() => setShowMap(false)}
+                className="text-white hover:text-[#09D85D] transition-colors text-xl leading-none"
+              >
+                x
+              </button>
+            </div>
+            
+            {/* Map area */}
+            <div className="relative p-4 bg-[#1a1a1a]">
+              <p className="text-[#666] text-xs text-center mb-4">Selecciona una provincia para viajar</p>
+              
+              {/* Argentina shape approximation with provinces */}
+              <div className="relative w-full aspect-[3/4] mx-auto max-w-[320px]">
+                {/* Background shape hint */}
+                <div className="absolute inset-0 opacity-10">
+                  <svg viewBox="0 0 100 130" className="w-full h-full">
+                    <path 
+                      d="M35 5 L65 5 L75 15 L80 35 L75 55 L70 75 L65 95 L55 115 L45 125 L40 115 L35 95 L30 75 L25 55 L20 35 L25 15 Z" 
+                      fill="#00564B"
+                    />
+                  </svg>
+                </div>
+                
+                {/* Province buttons */}
+                {PROVINCES.map((province) => {
+                  const discovered = province.communities.some(c => discoveredRef.current.has(c.id));
+                  const discoveredInProvince = province.communities.filter(c => discoveredRef.current.has(c.id)).length;
+                  
+                  const positions: Record<string, { top: string; left: string }> = {
+                    noa: { top: '8%', left: '40%' },
+                    noreste: { top: '12%', left: '72%' },
+                    cuyo: { top: '42%', left: '22%' },
+                    mendoza: { top: '35%', left: '12%' },
+                    cordoba: { top: '30%', left: '50%' },
+                    litoral: { top: '22%', left: '68%' },
+                    pampas: { top: '45%', left: '55%' },
+                    caba: { top: '52%', left: '72%' },
+                    neuquen: { top: '60%', left: '28%' },
+                    patagonia: { top: '80%', left: '40%' },
+                  };
+                  const pos = positions[province.id] || { top: '50%', left: '50%' };
 
-              return (
-                <button
-                  key={province.id}
-                  onClick={() => handleFastTravel(province)}
-                  className="absolute transform -translate-x-1/2 -translate-y-1/2 p-3 rounded-lg transition-all duration-200 hover:scale-110"
-                  style={{
-                    top: pos.top,
-                    left: pos.left,
-                    backgroundColor: province.palette.accent + '33',
-                    border: `2px solid ${discovered ? '#00ff88' : province.palette.accent + '66'}`,
-                  }}
+                  return (
+                    <button
+                      key={province.id}
+                      onClick={() => handleFastTravel(province)}
+                      className="absolute transform -translate-x-1/2 -translate-y-1/2 px-3 py-2 rounded-lg transition-all duration-200 hover:scale-110 hover:z-10 min-w-[80px]"
+                      style={{
+                        top: pos.top,
+                        left: pos.left,
+                        backgroundColor: '#1a1a1a',
+                        border: `2px solid ${discovered ? '#09D85D' : province.palette.accent}`,
+                        boxShadow: discovered ? '0 0 8px #09D85D44' : 'none',
+                      }}
+                    >
+                      <div 
+                        className="font-bold text-xs"
+                        style={{ color: discovered ? '#09D85D' : province.palette.accent }}
+                      >
+                        {province.name}
+                      </div>
+                      <div className="text-[#666] text-[10px]">
+                        {discoveredInProvince}/{province.communities.length}
+                      </div>
+                    </button>
+                  );
+                })}
+                
+                {/* Center hub indicator */}
+                <div 
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#00564B] border-2 border-[#09D85D] flex items-center justify-center"
+                  style={{ top: '48%', left: '50%' }}
                 >
-                  <div className="text-white font-bold text-xs">{province.name}</div>
-                  <div className="text-[#aaa] text-[10px]">{province.communities.length} comunidades</div>
-                </button>
-              );
-            })}
+                  <span className="text-[#09D85D] text-[8px] font-bold">HUB</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Footer */}
+            <div className="px-4 py-3 bg-[#111] border-t border-[#333] text-center">
+              <p className="text-[#666] text-xs">Presiona M o clickea afuera para cerrar</p>
+            </div>
           </div>
-          <p className="text-[#666] text-xs mt-6">Presioná M o ✕ para cerrar</p>
         </div>
       )}
     </div>
@@ -1161,7 +1311,7 @@ function JoystickControl({ onMove }: { onMove: (dx: number, dy: number) => void 
   return (
     <div
       ref={baseRef}
-      className="fixed bottom-8 left-8 z-50 w-[90px] h-[90px] rounded-full bg-[#00ff8815] border-2 border-[#00ff8850] flex items-center justify-center"
+      className="fixed bottom-8 left-8 z-50 w-[90px] h-[90px] rounded-full bg-[#09D85D15] border-2 border-[#09D85D50] flex items-center justify-center"
       onTouchStart={(e) => {
         e.preventDefault();
         activeRef.current = true;
@@ -1181,7 +1331,7 @@ function JoystickControl({ onMove }: { onMove: (dx: number, dy: number) => void 
       }}
     >
       <div
-        className="w-9 h-9 rounded-full bg-[#00ff8899] border-2 border-[#00ff88]"
+        className="w-9 h-9 rounded-full bg-[#09D85D99] border-2 border-[#09D85D]"
         style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
       />
     </div>
