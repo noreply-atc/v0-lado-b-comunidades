@@ -363,9 +363,10 @@ interface Building {
 // Calcular tamano de region segun cantidad de comunidades
 function getRegionSize(communityCount: number): { w: number; h: number } {
   const clubs = communityCount - 1; // Sin contar la plaza
-  if (clubs <= 2) return { w: 12, h: 10 };
-  if (clubs <= 4) return { w: 16, h: 14 };
-  return { w: 20, h: 16 };
+  // Tamanos mas grandes para evitar solapamiento
+  if (clubs <= 2) return { w: 16, h: 14 };
+  if (clubs <= 4) return { w: 20, h: 18 };
+  return { w: 24, h: 20 };
 }
 
 // Build all buildings - plaza central + clubes alrededor
@@ -391,14 +392,15 @@ function generateBuildings(): Building[] {
       });
     }
     
-    // Clubes alrededor de la plaza
+    // Clubes alrededor de la plaza con mas separacion
+    // La plaza es 5x5, los clubes son 5x4, necesitamos al menos 1 tile de separacion
     const positions = [
-      { dx: -6, dy: -4 },  // arriba-izq
-      { dx: 4, dy: -4 },   // arriba-der
-      { dx: -6, dy: 4 },   // abajo-izq
-      { dx: 4, dy: 4 },    // abajo-der
-      { dx: -6, dy: 0 },   // izq
-      { dx: 4, dy: 0 },    // der
+      { dx: -7, dy: -5 },  // arriba-izq
+      { dx: 5, dy: -5 },   // arriba-der
+      { dx: -7, dy: 5 },   // abajo-izq
+      { dx: 5, dy: 5 },    // abajo-der
+      { dx: -7, dy: 0 },   // izq
+      { dx: 5, dy: 0 },    // der
     ];
     
     clubs.forEach((community, idx) => {
@@ -518,18 +520,20 @@ export default function GamePage() {
   }, []);
 
   // Fast travel handler
-  const handleFastTravel = useCallback((region: Region) => {
-    const size = getRegionSize(region.communities.length);
-    fadeRef.current = {
-      active: true,
-      alpha: 0,
-      targetX: (region.worldX + size.w / 2) * TILE,
-      targetY: (region.worldY + size.h / 2) * TILE,
-      phase: 'out'
-    };
-    setShowMap(false);
-    setSearchQuery('');
-    addLog('travel', `Viajando a ${region.name}...`);
+const handleFastTravel = useCallback((region: Region) => {
+  const size = getRegionSize(region.communities.length);
+  // Spawn a la DERECHA de la plaza central (en el camino), no dentro
+  // La plaza esta en el centro, asi que spawneamos +4 tiles a la derecha
+  fadeRef.current = {
+  active: true,
+  alpha: 0,
+  targetX: (region.worldX + size.w / 2 + 4) * TILE,
+  targetY: (region.worldY + size.h / 2) * TILE,
+  phase: 'out'
+  };
+  setShowMap(false);
+  setSearchQuery('');
+  addLog('travel', `Viajando a ${region.name}...`);
   }, [addLog]);
 
   // Hide hint after 3 seconds
@@ -1128,7 +1132,7 @@ export default function GamePage() {
         </div>
       )}
 
-      {/* Terminal integrada */}
+      {/* Terminal */}
   <div className={`fixed transition-all duration-300 ${
     terminalMode === 'full' 
       ? 'inset-4 md:inset-8' 
