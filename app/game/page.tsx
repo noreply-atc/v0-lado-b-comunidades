@@ -448,6 +448,7 @@ export default function GamePage() {
   }, []);
   const [terminalMode, setTerminalMode] = useState<'mini' | 'normal' | 'full'>('normal'); // mini=minimizado, normal=3 lineas, full=pantalla completa
   const [pendingAction, setPendingAction] = useState<{ community: Community; region: Region } | null>(null); // Comunidad esperando accion
+  const [joyPos, setJoyPos] = useState({ x: 0, y: 0 }); // Posicion visual del joystick
   const terminalRef = useRef<HTMLDivElement>(null);
   const logIdRef = useRef(0);
   
@@ -540,6 +541,13 @@ const handleFastTravel = useCallback((region: Region) => {
   useEffect(() => {
     const timer = setTimeout(() => setShowHint(false), 3000);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Terminal minimizada en mobile
+  useEffect(() => {
+    if (window.innerWidth < 768) {
+      setTerminalMode('mini');
+    }
   }, []);
 
   // Main game effect
@@ -786,22 +794,73 @@ const handleFastTravel = useCallback((region: Region) => {
       }
     };
 
-    // Draw player
+    // Draw player with animations
     const drawPlayer = (px: number, py: number) => {
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(px + 2, py + 18, 5, 2);
-      ctx.fillRect(px + 9, py + 18, 5, 2);
-      ctx.fillStyle = '#1a2a3a';
-      ctx.fillRect(px + 3, py + 12, 10, 7);
-      ctx.fillStyle = '#00564B';
-      ctx.fillRect(px + 2, py + 6, 12, 7);
-      ctx.fillStyle = '#f4c7a8';
-      ctx.fillRect(px + 4, py, 8, 7);
-      ctx.fillStyle = '#2a1a0a';
-      ctx.fillRect(px + 4, py, 8, 3);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(px + 5, py + 3, 2, 2);
-      ctx.fillRect(px + 9, py + 3, 2, 2);
+      const player = playerRef.current;
+      const x = Math.floor(px - player.w / 2);
+      const y = Math.floor(py - player.h / 2);
+
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(x + 8, y + player.h + 2, 7, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const bodyColor = '#2255aa';
+      const skinColor = '#f5c89a';
+      const hairColor = '#1a1a1a';
+      const shoeColor = '#222';
+
+      // legOff crea la animación de caminar
+      const legOff = player.moving ? Math.sin(player.frame * 0.8) * 3 : 0;
+
+      // Shoes
+      ctx.fillStyle = shoeColor;
+      ctx.fillRect(x + 3, y + 14, 4, 5);
+      ctx.fillRect(x + 9, y + 14, 4, 5);
+
+      // Legs
+      ctx.fillStyle = '#1a3a7a';
+      ctx.fillRect(x + 3, y + 11 + legOff, 4, 5);
+      ctx.fillRect(x + 9, y + 11 - legOff, 4, 5);
+
+      // Body
+      ctx.fillStyle = bodyColor;
+      ctx.fillRect(x + 2, y + 7, 12, 7);
+
+      // Arms (se mueven opuestas a las piernas)
+      ctx.fillStyle = bodyColor;
+      ctx.fillRect(x, y + 7 + legOff, 3, 6);
+      ctx.fillStyle = skinColor;
+      ctx.fillRect(x, y + 13 + legOff, 3, 3);
+
+      ctx.fillStyle = bodyColor;
+      ctx.fillRect(x + 13, y + 7 - legOff, 3, 6);
+      ctx.fillStyle = skinColor;
+      ctx.fillRect(x + 13, y + 13 - legOff, 3, 3);
+
+      // Head
+      ctx.fillStyle = skinColor;
+      ctx.fillRect(x + 3, y + 1, 10, 9);
+
+      // Hair/cap
+      ctx.fillStyle = hairColor;
+      ctx.fillRect(x + 3, y + 1, 10, 4);
+      ctx.fillRect(x + 1, y + 3, 3, 2);
+      ctx.fillRect(x + 12, y + 3, 3, 2);
+
+      // Eyes (solo visibles de frente/costado)
+      ctx.fillStyle = '#222';
+      if (player.dir === 'down' || player.dir === 'left' || player.dir === 'right') {
+        ctx.fillRect(x + 5, y + 6, 2, 2);
+        ctx.fillRect(x + 9, y + 6, 2, 2);
+      }
+
+      // ATC text on shirt
+      ctx.fillStyle = '#00ff88';
+      ctx.font = 'bold 5px "Courier New"';
+      ctx.textAlign = 'center';
+      ctx.fillText('ATC', x + 8, y + 13);
     };
 
     // Game loop
@@ -1077,9 +1136,16 @@ const handleFastTravel = useCallback((region: Region) => {
     const dy = (clientY - centerY) / (rect.height / 2);
     const len = Math.sqrt(dx * dx + dy * dy);
     
+    // Normalizar para que no se salga del circulo
+    const normalizedX = Math.max(-1, Math.min(1, dx));
+    const normalizedY = Math.max(-1, Math.min(1, dy));
+    
+    // Actualizar posicion visual del joystick
+    setJoyPos({ x: normalizedX, y: normalizedY });
+    
     if (len > 0.2) {
-      joyRef.current.dx = Math.max(-1, Math.min(1, dx));
-      joyRef.current.dy = Math.max(-1, Math.min(1, dy));
+      joyRef.current.dx = normalizedX;
+      joyRef.current.dy = normalizedY;
     } else {
       joyRef.current.dx = 0;
       joyRef.current.dy = 0;
@@ -1090,11 +1156,12 @@ const handleFastTravel = useCallback((region: Region) => {
     joyRef.current.active = false;
     joyRef.current.dx = 0;
     joyRef.current.dy = 0;
+    setJoyPos({ x: 0, y: 0 });
   }, []);
 
   return (
     <div className="fixed inset-0 bg-[#1a2a1a] overflow-hidden">
-      <canvas ref={canvasRef} className="w-full h-full" />
+      <canvas ref={canvasRef} className="w-full h-full" style={{ touchAction: 'none', display: 'block' }} />
       
       {/* Header UI */}
       <div className="fixed top-0 left-0 right-0 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/70 to-transparent pointer-events-none">
@@ -1238,9 +1305,17 @@ const handleFastTravel = useCallback((region: Region) => {
     )}
   </div>
 
-      {/* Joystick (mobile) */}
+      {/* Boton mapa flotante - mobile */}
+      <button
+        onClick={() => setShowMap(true)}
+        className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full bg-[#00564B] border-2 border-[#09D85D] flex items-center justify-center text-[#09D85D] font-bold text-xs md:hidden"
+      >
+        M
+      </button>
+
+      {/* Joystick (mobile) - visible en pantallas pequenas */}
       <div
-        className="fixed bottom-8 right-8 w-28 h-28 rounded-full bg-black/40 border-2 border-white/30 md:hidden touch-none"
+        className="fixed bottom-8 left-8 w-28 h-28 rounded-full bg-black/40 border-2 border-white/20 md:hidden touch-none z-40"
         onTouchStart={handleJoyStart}
         onTouchMove={handleJoyMove}
         onTouchEnd={handleJoyEnd}
@@ -1249,10 +1324,12 @@ const handleFastTravel = useCallback((region: Region) => {
         onMouseUp={handleJoyEnd}
         onMouseLeave={handleJoyEnd}
       >
-        <div 
-          className="absolute top-1/2 left-1/2 w-12 h-12 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/50"
+        <div
+          className="absolute w-10 h-10 rounded-full bg-white/30 border-2 border-white/50 pointer-events-none"
           style={{
-            transform: `translate(calc(-50% + ${joyRef.current.dx * 20}px), calc(-50% + ${joyRef.current.dy * 20}px))`
+            left: `${50 + joyPos.x * 35}%`,
+            top: `${50 + joyPos.y * 35}%`,
+            transform: 'translate(-50%, -50%)',
           }}
         />
       </div>
