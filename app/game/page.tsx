@@ -433,17 +433,26 @@ export default function GamePage() {
   const [currentCommunity, setCurrentCommunity] = useState<Community | null>(null);
   const [discoveredCount, setDiscoveredCount] = useState(0);
   const [showHint, setShowHint] = useState(true);
-  const [terminalLogs, setTerminalLogs] = useState<LogEntry[]>([
-    { id: 0, type: 'info', message: 'Bienvenido a ATC Campus', timestamp: new Date() },
-    { id: 1, type: 'info', message: 'Explora las comunidades de Argentina', timestamp: new Date() },
-  ]);
-  const [terminalOpen, setTerminalOpen] = useState(true);
-  const terminalRef = useRef<HTMLDivElement>(null);
-  const logIdRef = useRef(2);
+  const [terminalLogs, setTerminalLogs] = useState<LogEntry[]>([]);
+  const [mounted, setMounted] = useState(false);
   
-  // Game state refs
+  // Initialize logs only on client to avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+    logIdRef.current = 2;
+    setTerminalLogs([
+      { id: 0, type: 'info', message: 'Bienvenido a ATC Campus', timestamp: new Date() },
+      { id: 1, type: 'info', message: 'Explora las comunidades de Argentina', timestamp: new Date() },
+    ]);
+  }, []);
+  const [terminalOpen, setTerminalOpen] = useState(false); // Start collapsed
+  const terminalRef = useRef<HTMLDivElement>(null);
+  const logIdRef = useRef(0);
+  
+  // Game state refs - spawn EAST of stadium on the road
+  // Stadium is at (48-53, 48-53), so spawn at x=55 (outside)
   const playerRef = useRef({
-    x: 52 * TILE,
+    x: 56 * TILE,
     y: 50 * TILE,
     w: 16,
     h: 20,
@@ -1092,15 +1101,9 @@ export default function GamePage() {
         </div>
         <div className="flex items-center gap-2 pointer-events-auto">
           <div className="px-3 py-1.5 bg-black/50 rounded-full text-white text-sm">
-            {discoveredCount}/{TOTAL_COMMUNITIES}
-          </div>
-          <button
-            onClick={() => setTerminalOpen(!terminalOpen)}
-            className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${terminalOpen ? 'bg-[#09D85D] text-[#00564B]' : 'bg-black/50 text-white'}`}
-          >
-            T
-          </button>
-          <button
+  {discoveredCount}/{TOTAL_COMMUNITIES}
+  </div>
+  <button
             onClick={() => setShowMap(true)}
             className="px-4 py-1.5 bg-[#00564B] hover:bg-[#00463B] text-white text-sm font-medium rounded-full transition-colors"
           >
@@ -1117,63 +1120,73 @@ export default function GamePage() {
       )}
 
       {/* Terminal Panel */}
-      {terminalOpen && (
-        <div className="fixed top-16 right-4 bottom-36 w-72 bg-[#0a0f0a]/95 border border-[#1a2a1a] rounded-lg overflow-hidden flex flex-col shadow-2xl">
-          <div className="flex items-center justify-between px-3 py-2 bg-[#00564B] shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-[#09D85D] rounded-full" />
-              <span className="text-white text-xs font-bold font-mono">TERMINAL</span>
+{/* Terminal chat - compacto abajo */}
+  <div className={`fixed left-4 right-4 md:left-auto md:right-4 md:w-80 bg-[#0a0f0a]/95 border border-[#1a2a1a] rounded-t-lg overflow-hidden shadow-2xl transition-all duration-200 ${terminalOpen ? 'bottom-0 max-h-48' : 'bottom-0 max-h-8'}`}>
+    {/* Header - siempre visible, clickeable para expandir */}
+    <button
+      onClick={() => setTerminalOpen(!terminalOpen)}
+      className="w-full flex items-center justify-between px-3 py-1.5 bg-[#00564B] hover:bg-[#006655] transition-colors"
+    >
+      <div className="flex items-center gap-2">
+        <div className={`w-1.5 h-1.5 rounded-full ${terminalLogs.length > 2 ? 'bg-[#09D85D] animate-pulse' : 'bg-[#09D85D]'}`} />
+        <span className="text-white text-[10px] font-bold font-mono">TERMINAL</span>
+        {!terminalOpen && terminalLogs.length > 0 && (
+          <span className="text-white/60 text-[10px] truncate max-w-[150px]">
+            {terminalLogs[terminalLogs.length - 1]?.message.substring(0, 30)}...
+          </span>
+        )}
+      </div>
+      <svg 
+        className={`w-3 h-3 text-white/60 transition-transform ${terminalOpen ? 'rotate-180' : ''}`} 
+        fill="none" 
+        stroke="currentColor" 
+        viewBox="0 0 24 24"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+      </svg>
+    </button>
+    
+    {/* Content - solo visible cuando esta abierto */}
+    {terminalOpen && (
+      <>
+        <div
+          ref={terminalRef}
+          className="overflow-y-auto p-2 font-mono text-[10px] space-y-1 max-h-32"
+        >
+          {terminalLogs.slice(-8).map((log) => (
+            <div key={log.id} className="flex items-start gap-1.5">
+              <span className="text-[#555] shrink-0 text-[9px]">
+                {log.timestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <span className={`flex-1 ${
+                log.type === 'discovery' ? 'text-[#09D85D]' : 
+                log.type === 'travel' ? 'text-[#00bcd4]' : 
+                log.type === 'info' ? 'text-[#777]' : 
+                'text-[#ff9800]'
+              }`}>
+                {log.message}
+              </span>
+              {log.link && (
+                <a
+                  href={log.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 px-1.5 py-0.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-[8px] rounded transition-colors"
+                >
+                  Unirse
+                </a>
+              )}
             </div>
-            <button
-              onClick={() => setTerminalOpen(false)}
-              className="text-white/60 hover:text-white text-xs"
-            >
-              x
-            </button>
-          </div>
-          
-          <div 
-            ref={terminalRef}
-            className="flex-1 overflow-y-auto p-2 font-mono text-xs space-y-1"
-          >
-            {terminalLogs.map((log) => (
-              <div key={log.id} className="flex flex-col">
-                <div className="flex items-start gap-2">
-                  <span className="text-[#666] shrink-0">
-                    {log.timestamp.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  <span className={`
-                    ${log.type === 'discovery' ? 'text-[#09D85D]' : ''}
-                    ${log.type === 'travel' ? 'text-[#00bcd4]' : ''}
-                    ${log.type === 'info' ? 'text-[#888]' : ''}
-                    ${log.type === 'action' ? 'text-[#ff9800]' : ''}
-                  `}>
-                    {log.type === 'discovery' && '> '}
-                    {log.message}
-                  </span>
-                </div>
-                {log.link && log.community && (
-                  <a
-                    href={log.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-12 mt-1 px-2 py-1 bg-[#25D366] hover:bg-[#20bd5a] text-white text-[10px] rounded inline-block transition-colors"
-                  >
-                    Unirse a {log.community.name.substring(0, 15)}...
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
-          
-          <div className="px-2 py-1.5 bg-[#0a0f0a] border-t border-[#1a2a1a] shrink-0">
-            <div className="flex items-center gap-1 text-[#444] text-[10px] font-mono">
-              <span className="text-[#09D85D]">$</span>
-              <span className="animate-pulse">_</span>
-            </div>
-          </div>
+          ))}
         </div>
-      )}
+        <div className="px-2 py-1 bg-[#060a06] border-t border-[#1a2a1a] flex items-center gap-1">
+          <span className="text-[#09D85D] text-[10px]">$</span>
+          <span className="text-[#444] text-[10px] animate-pulse">_</span>
+          <span className="text-[#333] text-[8px] ml-auto">Presiona T para ocultar</span>
+        </div>
+      </>
+    )}
+  </div>
 
       {/* Community popup */}
       {currentCommunity && (
